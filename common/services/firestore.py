@@ -387,6 +387,34 @@ class FirestoreService(BaseService):
         data['callback_ids'] = []
         enrollment_doc.set(data)
 
+    def enroll_object_for_bulk_processing(
+        self,
+        enrollment_key: str,
+        portal_id: int,
+        callback_id: str,
+        data: dict,
+        expiration_hours: int = 0
+    ):
+        enrollment_doc = self.firestore_client.collection(
+            'bulk_enrollments'
+        ).document(
+            enrollment_key
+        )
+        doc = enrollment_doc.get()
+        doc_obj = doc.to_dict()
+        current_callbacks = doc_obj['callback_ids'] if doc.exists else []
+        data = {
+            'timestamp': datetime.now(),
+            'portal_id': portal_id,
+            'callback_ids': list(set(current_callbacks + [callback_id])),
+            'request': data,
+            'completed': doc_obj['completed'] if doc.exists else False,
+            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours),
+            'status': doc_obj['status'] if doc.exists and doc_obj.get('status') is not None else 'processing'
+        }
+        enrollment_doc.set(document_data=data)
+        return data
+
 
 class ConnectionNotFoundException(Exception):
     def __init__(self, message: str):

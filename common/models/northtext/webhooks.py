@@ -11,13 +11,12 @@ from common.models.northtext.messages import MessageType, MessageStatus, Tag
 class IncomingMessage(BaseModel):
     id: int
     sent_on: datetime
-    recipient: Optional[str] = None
+    number: Optional[str] = None
     contact_id: int
     message_type: MessageType
     message_status: MessageStatus
     body: Optional[str] = None
     attachment_url: Optional[str] = None
-    tags: Optional[List[dict]] = None
 
     class Config:
         populate_by_name = True
