@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, List
 
 import pytz
 from google.cloud import firestore
+from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
 
 from common.core.utils import timed_lru_cache
@@ -389,6 +390,7 @@ class FirestoreService(BaseService):
 
     def enroll_object_for_bulk_processing(
         self,
+        function_name: str,
         enrollment_key: str,
         portal_id: int,
         callback_id: str,
@@ -397,6 +399,10 @@ class FirestoreService(BaseService):
     ):
         enrollment_doc = self.firestore_client.collection(
             'bulk_enrollments'
+        ).document(
+            function_name
+        ).collection(
+            'enrollments'
         ).document(
             enrollment_key
         )
@@ -414,6 +420,68 @@ class FirestoreService(BaseService):
         }
         enrollment_doc.set(document_data=data)
         return data
+
+    def update_bulk_enrollments(
+        self,
+        function_name: str,
+        enrollment_ids: List[str],
+        key: str,
+        value: Any
+    ):
+        chunk_size = 500
+        while enrollment_ids:
+            batch = self.firestore_client.batch()
+            chunk, enrollment_ids = enrollment_ids[:chunk_size], enrollment_ids[chunk_size:]
+            for enrollment_id in chunk:
+                enrollment_doc = self.firestore_client.collection(
+                    'bulk_enrollments'
+                ).document(
+                    function_name
+                ).collection(
+                    'enrollments'
+                ).document(
+                    enrollment_id
+                )
+                batch.update(enrollment_doc, {key: value})
+            batch.commit()
+
+    def get_bulk_enrollments_before(
+        self,
+        function_name: str,
+        portal_id: int,
+        timestamp: datetime
+    ):
+        return self.firestore_client.collection(
+            'bulk_enrollments'
+        ).document(
+            function_name
+        ).collection(
+            'enrollments'
+        ).where(
+            filter=FieldFilter(
+                field_path="completed",
+                op_string="==",
+                value=False
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path="processing",
+                op_string="==",
+                value=False
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path="portal_id",
+                op_string="==",
+                value=portal_id
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path="timestamp",
+                op_string="<",
+                value=timestamp
+            )
+        ).limit(1000)
 
 
 class ConnectionNotFoundException(Exception):
