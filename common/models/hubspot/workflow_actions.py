@@ -87,12 +87,6 @@ class HubSpotWorkflowActionObjectModel(BaseModel):
         alias_generator = to_camel
 
 
-class MarketingEventType(str, Enum):
-    SUCCESS = "WEBINAR"
-    FAIL_CONTINUE = "CONFERENCE"
-    BLOCK = "WORKSHOP"
-
-
 class Operator(str, Enum):
     EQUALS = "equals"
     NOT_EQUALS = "not_equals"
@@ -109,70 +103,15 @@ class Operator(str, Enum):
 
 
 class HubSpotWorkflowActionInputFieldsModel(BaseModel):
-    # hubspot_recruiting set default job form
-    form_id: Optional[str] = None
+    # hubspot_northtext
+    recipient: str
+    static_phone: Optional[str]
+    phone_property: Optional[str]
+    sms_body: str
+    image: Optional[str]
+    tag: Optional[str]
 
-    # hubspot_recruiting set default application data
-    pipeline_id: Optional[str] = None
-    stage_id: Optional[str] = None
-
-    # hubspot_file_parser parse file
-    source_property: Optional[str] = None
-    destination_property: Optional[str] = None
-
-    # hubspot_marketing_events subscriber state change
-    external_event_id: Optional[str] = None
-    subscriber_state: Optional[str] = None
-    action_date_time_type: Optional[str] = None
-    action_date_time_property: Optional[str] = None
-    action_date_time: Optional[str] = None
-
-    # hubspot_file_attachment_manager attach file
-    file_property: Optional[str] = None
-    destination_object_type: Optional[str] = None
-    association_type: Optional[str] = None
-    association_label: Optional[str] = None
-    file_name_customization_type: Optional[str] = None
-    text_to_append: Optional[str] = None
-    new_file_name: Optional[str] = None
-    access: Optional[str] = None
-
-    # hubspot_file_attachment_manager delete attached files
-    deletion_type: Optional[str] = None
-
-    # hubspot_task_assistant
-    from_owner_type: Optional[str] = None
-    from_owner_property: Optional[str] = None
-    from_owner: Optional[str] = None
-    from_team: Optional[str] = None
-    owner_type: Optional[str] = None
-    owner_property: Optional[str] = None
-    owner: Optional[str] = None
-    team: Optional[str] = None
-    task_status: Optional[str] = None
-    task_type: Optional[List[str]] = None
-    task_title_filter: Optional[bool] = None
-    task_title_operator: Optional[Operator] = None
-    task_title_value: Optional[str] = None
-    task_title_case_sensitive: Optional[bool] = None
-    include_deactivated_assigned: Optional[bool] = None
-    include_deactivated_specific: Optional[bool] = None
-    include_deactivated_team: Optional[bool] = None
-
-    # fix my typo
-    duplicate_behavior: Optional[str] = None
-
-    # line item assistant
-    product_id: Optional[int] = None
-    quantity: Optional[float] = None
-    price_type: Optional[str] = None
-    price: Optional[float] = None
-    price_property_value: Optional[str] = None
-    products: Optional[List[str]] = None
-    update_deal_amount: Optional[bool] = None
-    create_if_none_match: Optional[bool] = None
-
-    # growth ops apps
+    # express integrations
     property_value: Optional[Any] = None
     operator: Optional[Operator] = None
 
@@ -191,11 +130,9 @@ class HubSpotWorkflowActionInputModel(BaseModel):
 
 class ErrorCode(str, Enum):
     INVALID_SUBSCRIPTION = "INVALID_SUBSCRIPTION"
-    INVALID_PROPERTY_VALUE = "INVALID_PROPERTY_VALUE"
-    INVALID_EVENT = "INVALID_EVENT"
-    INVALID_FILE_ACCESS = "INVALID_FILE_ACCESS"
-    FILE_NOT_FOUND = "FILE_NOT_FOUND"
-    LINE_ITEMS_NOT_FOUND = "LINE_ITEMS_NOT_FOUND"
+    MISSING_PHONE = "MISSING_PHONE"
+    INVALID_PHONE = "INVALID_PHONE"
+    SMS_SEND_FAILURE = "SMS_SEND_FAILURE"
 
 
 class HubSpotWorkflowActionOutputFieldsModel(BaseModel):
