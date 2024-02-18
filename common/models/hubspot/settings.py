@@ -23,6 +23,15 @@ class HubSpotAppSettingsActionTypeModel(str, Enum):
     DROPDOWN_UPDATE = "DROPDOWN_UPDATE"
 
 
+class HubSpotSettingsToggleStatusModel(BaseModel):
+    enabled: bool
+
+
+class HubSpotSettingsToggleUpdateModel(BaseModel):
+    response: HubSpotSettingsToggleStatusModel
+    message: Optional[str]
+
+
 class HubSpotAppSettingsModel(BaseModel):
     action_type: HubSpotAppSettingsActionTypeModel
     app_id: int
