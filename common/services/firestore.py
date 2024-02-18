@@ -397,11 +397,14 @@ class FirestoreService(BaseService):
         data: dict,
         expiration_hours: int = 0
     ):
-        enrollment_doc = self.firestore_client.collection(
+        portal_doc = self.firestore_client.collection(
             'bulk_enrollments'
         ).document(
             str(portal_id)
-        ).collection(
+        )
+        if not portal_doc.get().exists:
+            portal_doc.set(document_data={'created': datetime.now()})
+        enrollment_doc = portal_doc.collection(
             function_name
         ).document(
             enrollment_key
@@ -411,7 +414,6 @@ class FirestoreService(BaseService):
         current_callbacks = doc_obj['callback_ids'] if doc.exists else []
         data = {
             'timestamp': datetime.now(),
-            'portal_id': portal_id,
             'callback_ids': list(set(current_callbacks + [callback_id])),
             'request': data,
             'completed': doc_obj['completed'] if doc.exists else False,
