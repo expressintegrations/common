@@ -1,9 +1,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='growth-ops-apps-common',
+    name='ei-common',
     version='1.0.0',
-    description='Common utilities for Growth Ops Apps',
+    description='Common utilities for Express Integrations',
     packages=find_packages(),
     install_requires=[
         'anvil-uplink==0.4.2',
