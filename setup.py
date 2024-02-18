@@ -9,7 +9,7 @@ setup(
         'anvil-uplink==0.4.2',
         'dependency-injector==4.41.0',
         'fastapi==0.104.0',
-        'google-cloud-firestore==2.10.0',
+        'google-cloud-firestore==2.11.1',
         'google-cloud-logging==3.5.0',
         'google-cloud-run==0.10.0',
         'google-cloud-tasks==2.13.1',

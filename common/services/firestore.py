@@ -392,7 +392,7 @@ class FirestoreService(BaseService):
         self,
         function_name: str,
         enrollment_key: str,
-        portal_id: int,
+        portal_id: Any,
         callback_id: str,
         data: dict,
         expiration_hours: int = 0
@@ -400,9 +400,9 @@ class FirestoreService(BaseService):
         enrollment_doc = self.firestore_client.collection(
             'bulk_enrollments'
         ).document(
-            function_name
+            str(portal_id)
         ).collection(
-            'enrollments'
+            function_name
         ).document(
             enrollment_key
         )
@@ -416,13 +416,14 @@ class FirestoreService(BaseService):
             'request': data,
             'completed': doc_obj['completed'] if doc.exists else False,
             'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours),
-            'status': doc_obj['status'] if doc.exists and doc_obj.get('status') is not None else 'processing'
+            'status': doc_obj['status'] if doc.exists and doc_obj.get('status') is not None else 'queued'
         }
         enrollment_doc.set(document_data=data)
         return data
 
     def update_bulk_enrollments(
         self,
+        portal_id: Any,
         function_name: str,
         enrollment_ids: List[str],
         key: str,
@@ -436,9 +437,9 @@ class FirestoreService(BaseService):
                 enrollment_doc = self.firestore_client.collection(
                     'bulk_enrollments'
                 ).document(
-                    function_name
+                    str(portal_id)
                 ).collection(
-                    'enrollments'
+                    function_name
                 ).document(
                     enrollment_id
                 )
@@ -447,33 +448,29 @@ class FirestoreService(BaseService):
 
     def get_bulk_enrollments_before(
         self,
+        portal_id: Any,
         function_name: str,
-        portal_id: int,
-        timestamp: datetime
+        timestamp: datetime,
+        completed: bool = False,
+        status: str = 'queued'
     ):
         return self.firestore_client.collection(
             'bulk_enrollments'
         ).document(
-            function_name
+            str(portal_id)
         ).collection(
-            'enrollments'
+            function_name
         ).where(
             filter=FieldFilter(
                 field_path="completed",
                 op_string="==",
-                value=False
+                value=completed
             )
         ).where(
             filter=FieldFilter(
-                field_path="processing",
+                field_path="status",
                 op_string="==",
-                value=False
-            )
-        ).where(
-            filter=FieldFilter(
-                field_path="portal_id",
-                op_string="==",
-                value=portal_id
+                value=status
             )
         ).where(
             filter=FieldFilter(
