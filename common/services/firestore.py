@@ -416,9 +416,10 @@ class FirestoreService(BaseService):
             'timestamp': datetime.now(),
             'callback_ids': list(set(current_callbacks + [callback_id])),
             'request': data,
+            'action_taken': doc_obj['action_taken'] if doc.exists else False,
+            'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
-            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours),
-            'status': doc_obj['status'] if doc.exists and doc_obj.get('status') is not None else 'queued'
+            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours)
         }
         enrollment_doc.set(document_data=data)
         return data
