@@ -29,8 +29,8 @@ class MarketingEvent(BaseModel):
                 "name": k,
                 "value": v,
                 "timestamp": now,
-                "sourceId": "growth_operations_marketing_events",
-                "sourceLabel": "Growth Operations Marketing Events",
+                "sourceId": "express_integrations_marketing_events",
+                "sourceLabel": "Express Integrations Marketing Events",
                 "source": "API"
             } for k, v in data.items()
         ] if data else None
