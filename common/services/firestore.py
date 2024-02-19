@@ -403,7 +403,7 @@ class FirestoreService(BaseService):
             str(portal_id)
         )
         if not portal_doc.get().exists:
-            portal_doc.set(document_data={'created': datetime.now()})
+            portal_doc.set(document_data={'created': datetime.now(), 'running': False})
         enrollment_doc = portal_doc.collection(
             function_name
         ).document(
@@ -448,13 +448,11 @@ class FirestoreService(BaseService):
                 batch.update(enrollment_doc, {key: value})
             batch.commit()
 
-    def get_bulk_enrollments_before(
+    def get_bulk_enrollments(
         self,
         portal_id: Any,
         function_name: str,
-        timestamp: datetime,
-        completed: bool = False,
-        status: str = 'queued'
+        completed: bool = False
     ):
         return self.firestore_client.collection(
             'bulk_enrollments'
@@ -467,18 +465,6 @@ class FirestoreService(BaseService):
                 field_path="completed",
                 op_string="==",
                 value=completed
-            )
-        ).where(
-            filter=FieldFilter(
-                field_path="status",
-                op_string="==",
-                value=status
-            )
-        ).where(
-            filter=FieldFilter(
-                field_path="timestamp",
-                op_string="<",
-                value=timestamp
             )
         ).limit(1000)
 
