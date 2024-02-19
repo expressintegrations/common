@@ -430,8 +430,7 @@ class FirestoreService(BaseService):
         portal_id: Any,
         function_name: str,
         enrollment_ids: List[str],
-        key: str,
-        value: Any
+        merge_data: dict
     ):
         chunk_size = 500
         while enrollment_ids:
@@ -447,7 +446,7 @@ class FirestoreService(BaseService):
                 ).document(
                     enrollment_id
                 )
-                batch.update(enrollment_doc, {key: value})
+                batch.update(enrollment_doc, merge_data)
             batch.commit()
 
     def get_bulk_enrollments(
