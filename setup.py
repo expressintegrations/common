@@ -1,7 +1,7 @@
 from setuptools import setup, find_packages
 
 setup(
-    name='ei-common',
+    name='common',
     version='1.0.0',
     description='Common utilities for Express Integrations',
     packages=find_packages(),
