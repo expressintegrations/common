@@ -13,4 +13,4 @@ class BulkEnrollment(BaseModel):
     usage_reported: bool
     completed: bool
     expires: datetime
-    extra_data: Optional[dict] = None
+    job_id: Optional[int] = None
