@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import List
+from typing import List, Optional
 
 from pydantic import BaseModel
 
@@ -13,3 +13,4 @@ class BulkEnrollment(BaseModel):
     usage_reported: bool
     completed: bool
     expires: datetime
+    extra_data: Optional[dict] = None
