@@ -416,6 +416,7 @@ class FirestoreService(BaseService):
             'timestamp': datetime.now(),
             'callback_ids': list(set(current_callbacks + [callback_id])),
             'request': data,
+            'processing': doc_obj['processing'] if doc.exists else False,
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
@@ -453,7 +454,8 @@ class FirestoreService(BaseService):
         self,
         portal_id: Any,
         function_name: str,
-        completed: bool = False
+        completed: bool = False,
+        processing: bool = False
     ):
         return self.firestore_client.collection(
             'bulk_enrollments'
@@ -466,6 +468,12 @@ class FirestoreService(BaseService):
                 field_path="completed",
                 op_string="==",
                 value=completed
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path="processing",
+                op_string="==",
+                value=processing
             )
         ).limit(1000)
 
