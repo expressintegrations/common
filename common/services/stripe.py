@@ -65,8 +65,8 @@ class StripeService(BaseService):
             features=features,
             business_profile={
                 "headline": f"Manage your {integration['label']} subscription",
-                "privacy_policy_url": "https://www.growth-operations.com/privacy-policy",
-                "terms_of_service_url": "https://www.growth-operations.com/terms-of-service",
+                "privacy_policy_url": "https://www.expressintegrations.com/privacy",
+                "terms_of_service_url": "https://www.expressintegrations.com/tos",
             },
             default_return_url=f"{base_url}/#my-integrations",
             metadata={
@@ -91,8 +91,8 @@ class StripeService(BaseService):
             features=features,
             business_profile={
                 "headline": f"Manage your {integration_label} subscription",
-                "privacy_policy_url": "https://www.growth-operations.com/privacy-policy",
-                "terms_of_service_url": "https://www.growth-operations.com/terms-of-service",
+                "privacy_policy_url": "https://www.expressintegrations.com/privacy",
+                "terms_of_service_url": "https://www.expressintegrations.com/tos",
             },
             default_return_url=f"{base_url}/#my-integrations",
             metadata={

@@ -71,5 +71,4 @@ class CloudTasksService(BaseService):
             # Add the timestamp to the tasks.
             task['schedule_time'] = timestamp
         request = {'parent': parent, 'task': task}
-        self.logger.log_text(f"Request: {request}", severity='DEBUG')
         return self.cloud_tasks_client.create_task(request=request)

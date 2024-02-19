@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, List
 
 import pytz
 from google.cloud import firestore
+from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
 
 from common.core.utils import timed_lru_cache
@@ -386,6 +387,94 @@ class FirestoreService(BaseService):
         data = enrollment_doc.get().to_dict()
         data['callback_ids'] = []
         enrollment_doc.set(data)
+
+    def enroll_object_for_bulk_processing(
+        self,
+        function_name: str,
+        enrollment_key: str,
+        portal_id: Any,
+        callback_id: str,
+        data: dict,
+        expiration_hours: int = 0
+    ):
+        portal_doc = self.firestore_client.collection(
+            'bulk_enrollments'
+        ).document(
+            str(portal_id)
+        )
+        if not portal_doc.get().exists:
+            portal_doc.set(document_data={'created': datetime.now(), 'running': False})
+        enrollment_doc = portal_doc.collection(
+            function_name
+        ).document(
+            enrollment_key
+        )
+        doc = enrollment_doc.get()
+        doc_obj = doc.to_dict()
+        current_callbacks = doc_obj['callback_ids'] if doc.exists else []
+        data = {
+            'timestamp': datetime.now(),
+            'callback_ids': list(set(current_callbacks + [callback_id])),
+            'request': data,
+            'processing': doc_obj['processing'] if doc.exists else False,
+            'action_taken': doc_obj['action_taken'] if doc.exists else False,
+            'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
+            'completed': doc_obj['completed'] if doc.exists else False,
+            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours)
+        }
+        enrollment_doc.set(document_data=data)
+        return data
+
+    def update_bulk_enrollments(
+        self,
+        portal_id: Any,
+        function_name: str,
+        enrollment_ids: List[str],
+        merge_data: dict
+    ):
+        chunk_size = 500
+        while enrollment_ids:
+            batch = self.firestore_client.batch()
+            chunk, enrollment_ids = enrollment_ids[:chunk_size], enrollment_ids[chunk_size:]
+            for enrollment_id in chunk:
+                enrollment_doc = self.firestore_client.collection(
+                    'bulk_enrollments'
+                ).document(
+                    str(portal_id)
+                ).collection(
+                    function_name
+                ).document(
+                    enrollment_id
+                )
+                batch.update(enrollment_doc, merge_data)
+            batch.commit()
+
+    def get_bulk_enrollments(
+        self,
+        portal_id: Any,
+        function_name: str,
+        completed: bool = False,
+        processing: bool = False
+    ):
+        return self.firestore_client.collection(
+            'bulk_enrollments'
+        ).document(
+            str(portal_id)
+        ).collection(
+            function_name
+        ).where(
+            filter=FieldFilter(
+                field_path="completed",
+                op_string="==",
+                value=completed
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path="processing",
+                op_string="==",
+                value=processing
+            )
+        ).limit(1000)
 
 
 class ConnectionNotFoundException(Exception):

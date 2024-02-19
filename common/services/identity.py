@@ -7,28 +7,10 @@ class IdentityService(BaseService):
     def __init__(self) -> None:
         super().__init__(log_name='identity.service')
 
-    def hubspot_file_attachment_manager(self, token: str) -> Identity:
+    def hubspot_northtext(self, token: str) -> Identity:
         return self.get_hubspot_identity_from_token(token=token)
 
-    def hubspot_marketing_events(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def hubspot_file_parser(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def hubspot_recruiting(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def hubspot_email_domain_parser(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def hubspot_task_assistant(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def hubspot_line_item_assistant(self, token: str) -> Identity:
-        return self.get_hubspot_identity_from_token(token=token)
-
-    def growth_ops_apps(self, token: str) -> Identity:
+    def express_integrations(self, token: str) -> Identity:
         return self.get_hubspot_identity_from_token(token=token)
 
     @staticmethod
