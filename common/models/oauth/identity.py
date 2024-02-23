@@ -10,3 +10,4 @@ class Identity(BaseModel):
     user_id: Optional[str] = None
     account_id: Optional[str] = None
     account_name: Optional[str] = None
+    default: bool
