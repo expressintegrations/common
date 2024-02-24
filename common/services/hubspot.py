@@ -25,9 +25,9 @@ from common.models.hubspot.marketing_events import MarketingEvent
 from common.models.hubspot.settings import HubSpotAccountDetails
 from common.models.hubspot.timeline_events import TimelineEvent
 from common.models.hubspot.workflow_actions import (
-    WorkflowFieldOption, WorkflowOptionsResponse, HubSpotWorkflowException, ErrorCode, HubSpotExecutionState,
-    HubSpotWorkflowActionOutputFieldsModel, HubSpotWorkflowActionCallbackBatchModel,
-    HubSpotWorkflowActionCallbackModel
+    WorkflowFieldOption, WorkflowOptionsResponse, HubSpotWorkflowException, ErrorCode, ExecutionState,
+    HubSpotWorkflowActionCallbackBatchModel,
+    WorkflowActionCallback, ActionOutputFields
 )
 from common.services import constants
 from common.services.base import BaseService
@@ -1135,14 +1135,14 @@ class HubSpotService(BaseService):
         while callback_ids:
             chunk, callback_ids = callback_ids[:chunk_size], callback_ids[chunk_size:]
             output_fields = {
-                "hs_execution_state": HubSpotExecutionState.SUCCESS
+                "hs_execution_state": ExecutionState.SUCCESS
             }
             if type(output_data) == dict:
                 output_fields |= output_data
             data = HubSpotWorkflowActionCallbackBatchModel(
                 inputs=[
-                    HubSpotWorkflowActionCallbackModel(
-                        output_fields=HubSpotWorkflowActionOutputFieldsModel(**output_fields),
+                    WorkflowActionCallback(
+                        output_fields=ActionOutputFields(**output_fields),
                         callback_id=callback_id
                     ) for callback_id in set(chunk)
                 ]
