@@ -14,7 +14,7 @@ from hubspot.crm.objects import (
     SimplePublicObjectInput,
     PublicObjectSearchRequest
 )
-from hubspot.crm.properties import PropertyCreate, PropertyGroupCreate, BatchInputPropertyCreate
+from hubspot.crm.properties import PropertyGroupCreate, BatchInputPropertyCreate
 from hubspot.files.files.exceptions import NotFoundException as HubSpotFileNotFoundException
 from hubspot.marketing.events import BatchInputMarketingEventSubscriber
 from requests.exceptions import InvalidSchema
@@ -309,7 +309,7 @@ class HubSpotService(BaseService):
     def create_property(self, object_type: str, property_dict: dict):
         return self.hubspot_client.crm.properties.core_api.create(
             object_type=object_type,
-            property_create=PropertyCreate(**property_dict)
+            property_create=property_dict
         )
 
     def get_property(self, object_type: str, property_name: str):
