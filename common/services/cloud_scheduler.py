@@ -4,7 +4,7 @@ from google.cloud.scheduler_v1 import Job, PauseJobRequest, ResumeJobRequest
 from common.services.base import BaseService
 
 
-class CloudTasksService(BaseService):
+class CloudSchedulerService(BaseService):
 
     def __init__(
         self,
