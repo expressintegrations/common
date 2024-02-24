@@ -138,7 +138,10 @@ class HubSpotService(BaseService):
             owners += self.get_owners(archived=True)
         options = [
             WorkflowFieldOption(
-                label=f"{owner.first_name} {owner.last_name}{' - Deactivated' if owner.archived else ''}\n({owner.email})",
+                label=(
+                    f"{owner.first_name} {owner.last_name}"
+                    f"{' - Deactivated' if owner.archived else ''}\n({owner.email})"
+                ),
                 description=f"{owner.email}",
                 value=owner.id
             ) for owner in sorted(owners, key=lambda o: o.email)
@@ -1237,5 +1240,3 @@ class HubSpotService(BaseService):
         return self.hubspot_client.communication_preferences.status_api.unsubscribe(
             public_update_subscription_status_request=data
         )
-
-
