@@ -142,7 +142,7 @@ class NorthTextService(BaseService):
         return Contact.model_validate(response)
 
     def create_webhook(self, webhook: WebhookCreateRequest) -> Webhook:
-        response = self.northtext_client.api_call(
+        response = self.api_call(
             method='post',
             endpoint='/api/v2/webhook',
             json=webhook.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
@@ -150,7 +150,7 @@ class NorthTextService(BaseService):
         return Webhook.model_validate(response)
 
     def delete_webhook(self, webhook_id: int) -> WebhookDeleteResponse:
-        response = self.northtext_client.api_call(
+        response = self.api_call(
             method='delete',
             endpoint=f'/api/v2/webhook/{webhook_id}'
         )
