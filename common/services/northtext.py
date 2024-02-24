@@ -9,6 +9,7 @@ from common.models.northtext.messages import (
     MessagesResponse, MessageSendRequest, Message, MessageResponse,
     BulkMessagesResponse
 )
+from common.models.northtext.users import UsersResponse
 from common.models.northtext.webhooks import WebhookCreateRequest, Webhook, WebhookDeleteResponse
 from common.services.base import BaseService
 
@@ -46,6 +47,13 @@ class NorthTextService(BaseService):
         if r.status_code >= 400:
             raise Exception(r.text)
         return r.json()
+
+    def get_users(self) -> UsersResponse:
+        response = self.api_call(
+            method='get',
+            endpoint=f"/api/v2/users"
+        )
+        return UsersResponse.model_validate(response)
 
     def get_message(self, message_id: int) -> MessageResponse:
         response = self.northtext_client.api_call(
