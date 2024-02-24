@@ -148,7 +148,7 @@ class ErrorCode(str, Enum):
     SMS_SEND_FAILURE = "SMS_SEND_FAILURE"
 
 
-class HubSpotWorkflowActionOutputFieldsModel(BaseModel):
+class ActionOutputFields(BaseModel):
     error_code: Optional[ErrorCode] = Field(default=None, alias='errorCode')
     hs_execution_state: ExecutionState
     hs_expiration_duration: Optional[str] = None
@@ -159,16 +159,16 @@ class HubSpotWorkflowActionOutputFieldsModel(BaseModel):
         populate_by_name = True
 
 
-class HubSpotWorkflowActionOutputModel(BaseModel):
-    output_fields: HubSpotWorkflowActionOutputFieldsModel
+class WorkflowActionOutput(BaseModel):
+    output_fields: ActionOutputFields
 
     class Config:
         populate_by_name = True
         alias_generator = to_camel
 
 
-class HubSpotWorkflowActionCallbackModel(BaseModel):
-    output_fields: HubSpotWorkflowActionOutputFieldsModel
+class WorkflowActionCallback(BaseModel):
+    output_fields: ActionOutputFields
     callback_id: str = Field(default=None, alias='callbackId')
 
     class Config:
@@ -176,7 +176,7 @@ class HubSpotWorkflowActionCallbackModel(BaseModel):
 
 
 class HubSpotWorkflowActionCallbackBatchModel(BaseModel):
-    inputs: List[HubSpotWorkflowActionCallbackModel]
+    inputs: List[WorkflowActionCallback]
 
     class Config:
         populate_by_name = True
