@@ -28,7 +28,7 @@ class NorthTextService(BaseService):
             raise Exception('An access token must be provided')
         super().__init__(log_name='northtext.service')
 
-    def api_call(self, method: str, endpoint: str, data: str = None, json: dict = None) -> dict:
+    def api_call(self, method: str, endpoint: str, data: str = None, json: [dict | list] = None) -> dict:
         r = getattr(requests, method.lower())(
             url=f"{self.base_url}/{endpoint.strip('/')}",
             data=data,
@@ -45,18 +45,18 @@ class NorthTextService(BaseService):
                 headers=self.headers
             )
         if r.status_code >= 400:
-            raise Exception(r.text)
+            raise Exception(f"Error {r.status_code} {r.text}")
         return r.json()
 
     def get_users(self) -> UsersResponse:
         response = self.api_call(
             method='get',
-            endpoint=f"/api/v2/users"
+            endpoint=f"/api/v2/user"
         )
         return UsersResponse.model_validate(response)
 
     def get_message(self, message_id: int) -> MessageResponse:
-        response = self.northtext_client.api_call(
+        response = self.api_call(
             method='get',
             endpoint=f"/api/v2/message/{message_id}"
         )
@@ -85,11 +85,12 @@ class NorthTextService(BaseService):
         self,
         messages: List[MessageSendRequest]
     ) -> BulkMessagesResponse:
-        return self.northtext_client.api_call(
+        response = self.api_call(
             method='post',
             endpoint='/api/v2/message/bulk',
             json=[m.model_dump(by_alias=True, exclude_unset=True, exclude_none=True) for m in messages]
         )
+        return BulkMessagesResponse.model_validate(response)
 
     def get_contacts(
         self,
