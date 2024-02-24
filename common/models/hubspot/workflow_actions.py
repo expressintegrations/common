@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 from pydantic.alias_generators import to_camel
 
 
-class HubSpotExecutionState(str, Enum):
+class ExecutionState(str, Enum):
     SUCCESS = "SUCCESS"
     FAIL_CONTINUE = "FAIL_CONTINUE"
     BLOCK = "BLOCK"
@@ -59,28 +59,40 @@ class WorkflowOptionsResponse(BaseModel):
     searchable: Optional[bool] = None
 
 
-class HubSpotWorkflowActionOriginModel(BaseModel):
-    portal_id: int
+class ActionExecutionIndex(BaseModel):
+    enrollment_id: Optional[int] = None
+    action_execution_index: Optional[int] = None
+
+    class Config:
+        populate_by_name = True
+        alias_generator = to_camel
+
+
+class ActionOrigin(BaseModel):
+    portal_id: Optional[int] = None
     action_definition_id: Optional[int] = None
     action_definition_version: Optional[int] = None
+    action_execution_index_identifier: Optional[ActionExecutionIndex] = None
+    extension_definition_id: Optional[int] = None
+    extension_definition_version_id: Optional[int] = None
 
     class Config:
         populate_by_name = True
         alias_generator = to_camel
 
 
-class HubSpotWorkflowActionContextModel(BaseModel):
+class ActionContext(BaseModel):
     source: Optional[str] = None
-    workflow_id: int
+    workflow_id: Optional[int] = None
 
     class Config:
         populate_by_name = True
         alias_generator = to_camel
 
 
-class HubSpotWorkflowActionObjectModel(BaseModel):
-    object_id: int
-    object_type: str
+class ActionObject(BaseModel):
+    object_id: Optional[int] = None
+    object_type: Optional[str] = None
 
     class Config:
         populate_by_name = True
@@ -102,26 +114,26 @@ class Operator(str, Enum):
     DIVIDE = "divide"
 
 
-class HubSpotWorkflowActionInputFieldsModel(BaseModel):
+class ActionInputFields(BaseModel):
     # hubspot_northtext
-    recipient: str
-    static_phone: Optional[str]
-    phone_property: Optional[str]
-    sms_body: str
-    image: Optional[str]
-    tag: Optional[str]
+    recipient: Optional[str] = None
+    image: Optional[str] = None
+    static_phone: Optional[str] = None
+    phone_property: Optional[str] = None
+    sms_body: Optional[str] = None
+    tag: Optional[str] = None
 
     # express integrations
     property_value: Optional[Any] = None
     operator: Optional[Operator] = None
 
 
-class HubSpotWorkflowActionInputModel(BaseModel):
-    callback_id: str
-    origin: HubSpotWorkflowActionOriginModel
-    context: HubSpotWorkflowActionContextModel
-    object: HubSpotWorkflowActionObjectModel
-    input_fields: HubSpotWorkflowActionInputFieldsModel
+class WorkflowActionExecution(BaseModel):
+    callback_id: Optional[str] = None
+    origin: Optional[ActionOrigin] = None
+    context: Optional[ActionContext] = None
+    object: Optional[ActionObject] = None
+    input_fields: Optional[ActionInputFields] = None
 
     class Config:
         populate_by_name = True
@@ -138,7 +150,7 @@ class ErrorCode(str, Enum):
 
 class HubSpotWorkflowActionOutputFieldsModel(BaseModel):
     error_code: Optional[ErrorCode] = Field(default=None, alias='errorCode')
-    hs_execution_state: HubSpotExecutionState
+    hs_execution_state: ExecutionState
     hs_expiration_duration: Optional[str] = None
     attempted_correction: Optional[str] = None
     result: Optional[str] = None
