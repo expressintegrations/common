@@ -866,9 +866,9 @@ class HubSpotService(BaseService):
 
     def get_public_image_files(self, q: str = None, after: str = None):
         params = {
-            'sort': 'name',
+            'sort': ['name'],
             'type': 'IMG',
-            'allows_anonymous_access': 'true'
+            'allows_anonymous_access': True
         }
         if q:
             params['name'] = q
