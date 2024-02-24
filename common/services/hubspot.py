@@ -14,7 +14,7 @@ from hubspot.crm.objects import (
     SimplePublicObjectInput,
     PublicObjectSearchRequest
 )
-from hubspot.crm.properties import PropertyCreate, PropertyGroupCreate, BatchInputPropertyCreate
+from hubspot.crm.properties import PropertyGroupCreate, BatchInputPropertyCreate
 from hubspot.files.files.exceptions import NotFoundException as HubSpotFileNotFoundException
 from hubspot.marketing.events import BatchInputMarketingEventSubscriber
 from requests.exceptions import InvalidSchema
@@ -138,7 +138,10 @@ class HubSpotService(BaseService):
             owners += self.get_owners(archived=True)
         options = [
             WorkflowFieldOption(
-                label=f"{owner.first_name} {owner.last_name}{' - Deactivated' if owner.archived else ''}\n({owner.email})",
+                label=(
+                    f"{owner.first_name} {owner.last_name}"
+                    f"{' - Deactivated' if owner.archived else ''}\n({owner.email})"
+                ),
                 description=f"{owner.email}",
                 value=owner.id
             ) for owner in sorted(owners, key=lambda o: o.email)
@@ -306,7 +309,7 @@ class HubSpotService(BaseService):
     def create_property(self, object_type: str, property_dict: dict):
         return self.hubspot_client.crm.properties.core_api.create(
             object_type=object_type,
-            property_create=PropertyCreate(**property_dict)
+            property_create=property_dict
         )
 
     def get_property(self, object_type: str, property_name: str):
@@ -863,9 +866,9 @@ class HubSpotService(BaseService):
 
     def get_public_image_files(self, q: str = None, after: str = None):
         params = {
-            'sort': 'name',
+            'sort': ['name'],
             'type': 'IMG',
-            'allowsAnonymousAccess': 'true'
+            'allows_anonymous_access': True
         }
         if q:
             params['name'] = q
@@ -1237,5 +1240,3 @@ class HubSpotService(BaseService):
         return self.hubspot_client.communication_preferences.status_api.unsubscribe(
             public_update_subscription_status_request=data
         )
-
-

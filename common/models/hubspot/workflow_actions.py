@@ -129,6 +129,7 @@ class HubSpotWorkflowActionInputModel(BaseModel):
 
 
 class ErrorCode(str, Enum):
+    INVALID_EVENT = "INVALID_EVENT"
     INVALID_SUBSCRIPTION = "INVALID_SUBSCRIPTION"
     MISSING_PHONE = "MISSING_PHONE"
     INVALID_PHONE = "INVALID_PHONE"

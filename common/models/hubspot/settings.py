@@ -29,7 +29,7 @@ class HubSpotSettingsToggleStatusModel(BaseModel):
 
 class HubSpotSettingsToggleUpdateModel(BaseModel):
     response: HubSpotSettingsToggleStatusModel
-    message: Optional[str]
+    message: Optional[str] = None
 
 
 class HubSpotAppSettingsModel(BaseModel):
