@@ -868,14 +868,14 @@ class HubSpotService(BaseService):
         params = {
             'sort': 'name',
             'type': 'IMG',
-            'allowsAnonymousAccess': 'true'
+            'allows_anonymous_access': 'true'
         }
         if q:
             params['name'] = q
         if after:
             params['after'] = after
         return self.hubspot_client.files.files.files_api.do_search(
-            **params
+            params
         )
 
     def get_public_images_as_workflow_options(self, q: str = None, after: str = None):
