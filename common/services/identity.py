@@ -27,7 +27,6 @@ class IdentityService(BaseService):
                 'last_name': user.last_name,
                 'user_id': str(token_details.user_id),
                 'account_id': str(token_details.hub_id),
-                'account_name': token_details.hub_domain,
-                'default': True
+                'account_name': token_details.hub_domain
             }
         )
