@@ -880,24 +880,15 @@ class HubSpotService(BaseService):
 
     def get_public_images_as_workflow_options(self, q: str = None, after: str = None):
         files_result = self.get_public_image_files(q=q, after=after)
-        options = []
-        for file in files_result['results']:
-            options.append(
-                WorkflowFieldOption(
-                    label=f"{file['name']}.{file['extension']}",
-                    description=file['path'],
-                    value=file['url']
-                )
-            )
         return WorkflowOptionsResponse(
             options=[
                 WorkflowFieldOption(
-                    label=f"{file['name']}.{file['extension']}",
-                    description=file['path'],
-                    value=file['url']
+                    label=f"{file.name}.{file.extension}",
+                    description=file.path,
+                    value=file.url
                 ) for file in files_result.results
             ],
-            after=files_result['paging']['next']['after'] if 'paging' in files_result else None,
+            after=files_result.paging.next.after if files_result.paging else None,
             searchable=True
         )
 
