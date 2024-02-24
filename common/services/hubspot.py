@@ -888,7 +888,7 @@ class HubSpotService(BaseService):
                     value=file.url
                 ) for file in files_result.results
             ],
-            after=files_result.paging.next.after if files_result.paging else None,
+            after=files_result.paging.next.after if files_result.paging and files_result.paging.next else None,
             searchable=True
         )
 
