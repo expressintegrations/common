@@ -1,8 +1,8 @@
+import time
 from datetime import datetime
 from typing import List
 
 import requests
-import time
 
 from common.models.northtext.contacts import ContactsResponse, ContactCreateRequest, Contact
 from common.models.northtext.messages import (
@@ -10,7 +10,7 @@ from common.models.northtext.messages import (
     BulkMessagesResponse
 )
 from common.models.northtext.users import UsersResponse
-from common.models.northtext.webhooks import WebhookCreateRequest, Webhook, WebhookDeleteResponse
+from common.models.northtext.webhooks import WebhookCreateRequest, WebhookDeleteResponse, WebhookResponse
 from common.services.base import BaseService
 
 
@@ -141,13 +141,13 @@ class NorthTextService(BaseService):
         )
         return Contact.model_validate(response)
 
-    def create_webhook(self, webhook: WebhookCreateRequest) -> Webhook:
+    def create_webhook(self, webhook: WebhookCreateRequest) -> WebhookResponse:
         response = self.api_call(
             method='post',
             endpoint='/api/v2/webhook',
             json=webhook.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
         )
-        return Webhook.model_validate(response)
+        return WebhookResponse.model_validate(response)
 
     def delete_webhook(self, webhook_id: int) -> WebhookDeleteResponse:
         response = self.api_call(
