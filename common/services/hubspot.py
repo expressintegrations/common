@@ -875,7 +875,7 @@ class HubSpotService(BaseService):
         if after:
             params['after'] = after
         return self.hubspot_client.files.files.files_api.do_search(
-            params
+            **params
         )
 
     def get_public_images_as_workflow_options(self, q: str = None, after: str = None):
