@@ -43,7 +43,7 @@ class DeliveryReceipt(BaseModel):
     attachment_url: Optional[str] = None
     number: Optional[str] = None
     mass_message_id: Optional[str] = None
-    message_id: Optional[str] = None
+    message_id: Optional[int] = None
     user_id: Optional[str] = None
     tags: Optional[List[Tag]] = None
 
