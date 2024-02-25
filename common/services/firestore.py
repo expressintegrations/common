@@ -394,8 +394,8 @@ class FirestoreService(BaseService):
         function_name: str,
         enrollment_key: str,
         portal_id: Any,
-        callback_id: str,
         data: dict,
+        callback_id: str = None,
         expiration_hours: int = 0
     ):
         enrollment_doc = self.get_account_doc(
@@ -411,7 +411,7 @@ class FirestoreService(BaseService):
         current_callbacks = doc_obj['callback_ids'] if doc.exists else []
         data = {
             'timestamp': datetime.now(),
-            'callback_ids': list(set(current_callbacks + [callback_id])),
+            'callback_ids': list(set(current_callbacks + [callback_id])) if callback_id else None,
             'request': data,
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
