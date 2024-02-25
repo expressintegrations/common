@@ -71,7 +71,7 @@ class Message(BaseModel):
 class MessageResponse(BaseModel):
     status: int
     description: str
-    result: Message
+    result: Optional[List[Message]] = None
 
 
 class MessagesResponse(BaseModel):
