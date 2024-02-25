@@ -1151,6 +1151,19 @@ class HubSpotService(BaseService):
                 batch_input_callback_completion_batch_request=data
             )
 
+    def complete_blocked_workflow_executions_bulk(
+        self,
+        callbacks: List[dict]
+    ):
+        chunk_size = 100
+        while callbacks:
+            chunk, callbacks = callbacks[:chunk_size], callbacks[chunk_size:]
+            self.hubspot_client.automation.actions.callbacks_api.complete_batch(
+                batch_input_callback_completion_batch_request={
+                    'inputs': chunk
+                }
+            )
+
     def get_products(self, after: str = None, limit: int = 100):
         return self.hubspot_client.crm.products.basic_api.get_page(limit=limit, after=after)
 
