@@ -450,9 +450,7 @@ class FirestoreService(BaseService):
         self,
         app_name: str,
         portal_id: Any,
-        function_name: str,
-        completed: bool = False,
-        processing: bool = False
+        function_name: str
     ):
         return self.get_account_doc(
             app_name=app_name,
@@ -463,13 +461,7 @@ class FirestoreService(BaseService):
             filter=FieldFilter(
                 field_path="completed",
                 op_string="==",
-                value=completed
-            )
-        ).where(
-            filter=FieldFilter(
-                field_path="processing",
-                op_string="==",
-                value=processing
+                value=False
             )
         ).limit(1000)
 
