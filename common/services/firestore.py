@@ -413,7 +413,6 @@ class FirestoreService(BaseService):
             'timestamp': datetime.now(),
             'callback_ids': list(set(current_callbacks + [callback_id])),
             'request': data,
-            'processing': doc_obj['processing'] if doc.exists else False,
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
