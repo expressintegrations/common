@@ -95,13 +95,13 @@ class NorthTextService(BaseService):
 
         return messages
 
-    def send_message(self, message: MessageSendRequest) -> Message:
+    def send_message(self, message: MessageSendRequest) -> MessageResponse:
         response = self.api_call(
             method='post',
             endpoint=f"/api/v2/message",
             json=message.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
         )
-        return Message.model_validate(response)
+        return MessageResponse.model_validate(response)
 
     def send_messages(
         self,
