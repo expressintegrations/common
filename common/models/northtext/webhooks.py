@@ -52,13 +52,18 @@ class DeliveryReceipt(BaseModel):
         alias_generator = to_pascal
 
 
+class OptInOptOut(int, Enum):
+    OPTED_OUT = 0
+    OPTED_IN = 1
+
+
 class SubscriptionStatus(BaseModel):
     id: int
     sent_on: datetime
     number: Optional[str] = None
     contact_id: Optional[int] = None
     body: Optional[str] = None
-    subscription_status: int
+    subscription_status: Optional[OptInOptOut] = None
     user_id: Optional[str] = None
 
     class Config:
