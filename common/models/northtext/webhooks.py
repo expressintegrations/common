@@ -5,7 +5,17 @@ from typing import Optional, List
 from pydantic import BaseModel
 from pydantic.alias_generators import to_pascal
 
-from common.models.northtext.messages import MessageType, MessageStatus, Tag
+from common.models.northtext.messages import MessageType, MessageStatus
+
+
+class Tag(BaseModel):
+    name: str
+    value: str
+    is_empty: Optional[bool] = None
+
+    class Config:
+        populate_by_name = True
+        alias_generator = to_pascal
 
 
 class IncomingMessage(BaseModel):
@@ -33,12 +43,18 @@ class DeliveryReceipt(BaseModel):
     attachment_url: Optional[str] = None
     number: Optional[str] = None
     mass_message_id: Optional[str] = None
-    message_id: Optional[str] = None
+    message_id: Optional[int] = None
+    user_id: Optional[str] = None
     tags: Optional[List[Tag]] = None
 
     class Config:
         populate_by_name = True
         alias_generator = to_pascal
+
+
+class OptInOptOut(int, Enum):
+    OPTED_OUT = 0
+    OPTED_IN = 1
 
 
 class SubscriptionStatus(BaseModel):
@@ -47,7 +63,7 @@ class SubscriptionStatus(BaseModel):
     number: Optional[str] = None
     contact_id: Optional[int] = None
     body: Optional[str] = None
-    subscription_status: int
+    subscription_status: Optional[OptInOptOut] = None
     user_id: Optional[str] = None
 
     class Config:

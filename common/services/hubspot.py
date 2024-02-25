@@ -25,9 +25,9 @@ from common.models.hubspot.marketing_events import MarketingEvent
 from common.models.hubspot.settings import HubSpotAccountDetails
 from common.models.hubspot.timeline_events import TimelineEvent
 from common.models.hubspot.workflow_actions import (
-    WorkflowFieldOption, WorkflowOptionsResponse, HubSpotWorkflowException, ErrorCode, HubSpotExecutionState,
-    HubSpotWorkflowActionOutputFieldsModel, HubSpotWorkflowActionCallbackBatchModel,
-    HubSpotWorkflowActionCallbackModel
+    WorkflowFieldOption, WorkflowOptionsResponse, HubSpotWorkflowException, ErrorCode, ExecutionState,
+    HubSpotWorkflowActionCallbackBatchModel,
+    WorkflowActionCallback, ActionOutputFields
 )
 from common.services import constants
 from common.services.base import BaseService
@@ -880,24 +880,15 @@ class HubSpotService(BaseService):
 
     def get_public_images_as_workflow_options(self, q: str = None, after: str = None):
         files_result = self.get_public_image_files(q=q, after=after)
-        options = []
-        for file in files_result['results']:
-            options.append(
-                WorkflowFieldOption(
-                    label=f"{file['name']}.{file['extension']}",
-                    description=file['path'],
-                    value=file['url']
-                )
-            )
         return WorkflowOptionsResponse(
             options=[
                 WorkflowFieldOption(
-                    label=f"{file['name']}.{file['extension']}",
-                    description=file['path'],
-                    value=file['url']
+                    label=f"{file.name}.{file.extension}",
+                    description=file.path,
+                    value=file.url
                 ) for file in files_result.results
             ],
-            after=files_result['paging']['next']['after'] if 'paging' in files_result else None,
+            after=files_result.paging.next.after if files_result.paging and files_result.paging.next else None,
             searchable=True
         )
 
@@ -1144,20 +1135,33 @@ class HubSpotService(BaseService):
         while callback_ids:
             chunk, callback_ids = callback_ids[:chunk_size], callback_ids[chunk_size:]
             output_fields = {
-                "hs_execution_state": HubSpotExecutionState.SUCCESS
+                "hs_execution_state": ExecutionState.SUCCESS
             }
             if type(output_data) == dict:
                 output_fields |= output_data
             data = HubSpotWorkflowActionCallbackBatchModel(
                 inputs=[
-                    HubSpotWorkflowActionCallbackModel(
-                        output_fields=HubSpotWorkflowActionOutputFieldsModel(**output_fields),
+                    WorkflowActionCallback(
+                        output_fields=ActionOutputFields(**output_fields),
                         callback_id=callback_id
                     ) for callback_id in set(chunk)
                 ]
             ).model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
             self.hubspot_client.automation.actions.callbacks_api.complete_batch(
                 batch_input_callback_completion_batch_request=data
+            )
+
+    def complete_blocked_workflow_executions_bulk(
+        self,
+        callbacks: List[dict]
+    ):
+        chunk_size = 100
+        while callbacks:
+            chunk, callbacks = callbacks[:chunk_size], callbacks[chunk_size:]
+            self.hubspot_client.automation.actions.callbacks_api.complete_batch(
+                batch_input_callback_completion_batch_request={
+                    'inputs': chunk
+                }
             )
 
     def get_products(self, after: str = None, limit: int = 100):

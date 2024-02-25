@@ -390,22 +390,19 @@ class FirestoreService(BaseService):
 
     def enroll_object_for_bulk_processing(
         self,
+        app_name: str,
         function_name: str,
         enrollment_key: str,
         portal_id: Any,
-        callback_id: str,
         data: dict,
+        callback_id: str = None,
         expiration_hours: int = 0
     ):
-        portal_doc = self.firestore_client.collection(
-            'bulk_enrollments'
-        ).document(
-            str(portal_id)
-        )
-        if not portal_doc.get().exists:
-            portal_doc.set(document_data={'created': datetime.now(), 'running': False})
-        enrollment_doc = portal_doc.collection(
-            function_name
+        enrollment_doc = self.get_account_doc(
+            app_name=app_name,
+            account_id=portal_id
+        ).collection(
+            f'{function_name}_enrollments'
         ).document(
             enrollment_key
         )
@@ -414,9 +411,8 @@ class FirestoreService(BaseService):
         current_callbacks = doc_obj['callback_ids'] if doc.exists else []
         data = {
             'timestamp': datetime.now(),
-            'callback_ids': list(set(current_callbacks + [callback_id])),
+            'callback_ids': list(set(current_callbacks + [callback_id])) if callback_id else None,
             'request': data,
-            'processing': doc_obj['processing'] if doc.exists else False,
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
@@ -427,6 +423,7 @@ class FirestoreService(BaseService):
 
     def update_bulk_enrollments(
         self,
+        app_name: str,
         portal_id: Any,
         function_name: str,
         enrollment_ids: List[str],
@@ -437,12 +434,11 @@ class FirestoreService(BaseService):
             batch = self.firestore_client.batch()
             chunk, enrollment_ids = enrollment_ids[:chunk_size], enrollment_ids[chunk_size:]
             for enrollment_id in chunk:
-                enrollment_doc = self.firestore_client.collection(
-                    'bulk_enrollments'
-                ).document(
-                    str(portal_id)
+                enrollment_doc = self.get_account_doc(
+                    app_name=app_name,
+                    account_id=portal_id
                 ).collection(
-                    function_name
+                    f'{function_name}_enrollments'
                 ).document(
                     enrollment_id
                 )
@@ -451,28 +447,20 @@ class FirestoreService(BaseService):
 
     def get_bulk_enrollments(
         self,
+        app_name: str,
         portal_id: Any,
-        function_name: str,
-        completed: bool = False,
-        processing: bool = False
+        function_name: str
     ):
-        return self.firestore_client.collection(
-            'bulk_enrollments'
-        ).document(
-            str(portal_id)
+        return self.get_account_doc(
+            app_name=app_name,
+            account_id=portal_id
         ).collection(
-            function_name
+            f'{function_name}_enrollments'
         ).where(
             filter=FieldFilter(
                 field_path="completed",
                 op_string="==",
-                value=completed
-            )
-        ).where(
-            filter=FieldFilter(
-                field_path="processing",
-                op_string="==",
-                value=processing
+                value=False
             )
         ).limit(1000)
 

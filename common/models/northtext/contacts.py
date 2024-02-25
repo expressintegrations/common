@@ -58,6 +58,10 @@ class Contact(BaseModel):
     subscribed_date: Optional[datetime] = None
     unsubscribed_date: Optional[datetime] = None
 
+    class Config:
+        populate_by_name = True
+        alias_generator = to_camel
+
 
 class ContactResponse(BaseModel):
     status: int

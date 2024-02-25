@@ -67,19 +67,41 @@ class NorthTextService(BaseService):
         limit: int = 100,
         page: int = 0,
         order: str = 'ASC',
-        contact_id: int = None
+        contact_id: int = None,
+        tag_name: str = None,
+        tag_value: str = None
     ) -> MessagesResponse:
         contact_param = f"&Contact={contact_id}" if contact_id else ''
-        response = self.api_call('get', f"/api/v2/message?Limit={limit}&Page={page}&Order={order}{contact_param}")
+        tag_name_param = f"&TagName={tag_name}" if tag_name else ''
+        tag_value_param = f"&TagValue={tag_value}" if tag_value else ''
+        response = self.api_call(
+            'get',
+            f"/api/v2/message?Limit={limit}&Page={page}&Order={order}{contact_param}{tag_name_param}{tag_value_param}"
+        )
         return MessagesResponse.model_validate(response)
 
-    def send_message(self, message: MessageSendRequest) -> Message:
+    def get_all_messages_by_tag(
+        self,
+        tag_name: str,
+        tag_value: str
+    ) -> List[Message]:
+        page = 0
+        messages_response = self.get_messages(tag_name=tag_name, tag_value=tag_value)
+        messages = messages_response.result
+        while len(messages_response.result) == 100:
+            page += 1
+            messages_response = self.get_messages(page=page, tag_name=tag_name, tag_value=tag_value)
+            messages += messages_response.result
+
+        return messages
+
+    def send_message(self, message: MessageSendRequest) -> MessageResponse:
         response = self.api_call(
             method='post',
             endpoint=f"/api/v2/message",
             json=message.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
         )
-        return Message.model_validate(response)
+        return MessageResponse.model_validate(response)
 
     def send_messages(
         self,
