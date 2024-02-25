@@ -5,11 +5,11 @@ from pydantic import BaseModel
 
 
 class BulkEnrollment(BaseModel):
-    timestamp: datetime
-    callback_ids: List[str]
-    request: dict
-    action_taken: bool
-    usage_reported: bool
-    completed: bool
-    expires: datetime
+    timestamp: Optional[datetime] = None
+    callback_ids: Optional[List[str]] = None
+    request: Optional[dict] = None
+    action_taken: Optional[bool] = None
+    usage_reported: Optional[bool] = None
+    completed: Optional[bool] = None
+    expires: Optional[datetime] = None
     job_id: Optional[int] = None
