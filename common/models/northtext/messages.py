@@ -19,6 +19,7 @@ class Tag(BaseModel):
 class MessageSendRequest(BaseModel):
     body: Optional[str]
     shorten_links: Optional[bool] = None
+    attachment: Optional[str] = None
     attachment_type: Optional[str] = None
     attachment_url: Optional[str] = None
     send_on: Optional[datetime] = None
