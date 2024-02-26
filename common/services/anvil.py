@@ -295,7 +295,6 @@ class AnvilService(BaseService):
             is_trial=stripe_sub['status'] == 'trialing',
             cancel_at_period_end=stripe_sub['cancel_at_period_end'],
             ended_at=ended_at,
-            stripe_subscription_item_id=stripe_sub['items']['data'][0]['id'],
             stripe_object=stripe_sub
         )
         if not stripe_sub['status'] in ['active', 'trialing']:
