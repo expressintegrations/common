@@ -285,11 +285,13 @@ class AnvilService(BaseService):
                 self.disconnect_from_anvil()
             return
 
-        price = app_tables.prices.get(stripe_id=stripe_sub['items']['data'][0]['price']['id'])
+        prices = []
+        for item in stripe_sub['items']['data']:
+            prices.append(app_tables.prices.get(stripe_id=item['price']['id']))
         ended_at = datetime.fromtimestamp(stripe_sub['ended_at']) if stripe_sub['ended_at'] else None
         subscription.update(
             active=stripe_sub['status'] in ['active', 'trialing'],
-            price=price,
+            prices=prices,
             is_trial=stripe_sub['status'] == 'trialing',
             cancel_at_period_end=stripe_sub['cancel_at_period_end'],
             ended_at=ended_at,
