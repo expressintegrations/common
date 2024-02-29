@@ -1,7 +1,6 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any, List
 
-import pytz
 from google.cloud import firestore
 from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
@@ -298,9 +297,7 @@ class FirestoreService(BaseService):
         ).document(
             enrollment_key
         )
-        est = pytz.timezone('US/Eastern')
-        utc = pytz.utc
-        now = datetime.now(tz=utc).astimezone(est)
+        now = datetime.now(tz=timezone.utc)
         doc = enrollment_doc.get()
         doc_obj = doc.to_dict()
         if not doc.exists or doc_obj['expires'] < now:
@@ -321,8 +318,8 @@ class FirestoreService(BaseService):
         )
 
         if not doc_obj['completed']:
-            return False
-        return True
+            return True
+        return False
 
     def get_enrollments(
         self,

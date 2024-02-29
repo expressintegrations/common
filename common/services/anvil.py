@@ -94,6 +94,16 @@ class AnvilService(BaseService):
             self.disconnect()
         return installations
 
+    def get_installations_by_account(self, account, keep_alive: bool = True):
+        if not self.connected:
+            self.connect()
+        installations = app_tables.installations.search(
+            account=account
+        )
+        if not keep_alive:
+            self.disconnect()
+        return installations
+
     def get_connection_by_id(self, connection_id: str, decode: bool = True, keep_alive: bool = True):
         if not self.connected:
             self.connect()

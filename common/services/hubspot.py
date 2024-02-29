@@ -385,6 +385,16 @@ class HubSpotService(BaseService):
             )
         )
 
+    def query(self, object_type: str, properties: list, query: str, after: str = None):
+        return self.hubspot_client.crm.objects.search_api.do_search(
+            object_type=object_type,
+            public_object_search_request=PublicObjectSearchRequest(
+                query=query,
+                properties=properties,
+                after=after
+            )
+        )
+
     def search_records_by_property_with_operator(
         self,
         object_type: str,
