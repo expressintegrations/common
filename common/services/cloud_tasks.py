@@ -1,5 +1,6 @@
 import json
 from datetime import datetime, timedelta, timezone
+from typing import List
 
 from google.cloud import tasks_v2
 from google.cloud.tasks_v2 import Task
@@ -29,7 +30,7 @@ class CloudTasksService(BaseService):
         self,
         queue: str,
         handler_uri: str,
-        payload: dict = None,
+        payload: [dict | List[dict]] = None,
         in_seconds: int = None,
         base_url: str = None,
         service_account: str = None
@@ -40,8 +41,6 @@ class CloudTasksService(BaseService):
         base_url = base_url.strip('/') if base_url else self.base_url.strip('/')
         handler_uri = handler_uri.strip('/')
         url = handler_uri if handler_uri.startswith('https://') else f"{base_url}/{handler_uri}"
-        self.logger.log_text(f"Enqueueing task on {url}", severity='DEBUG')
-        self.logger.log_text(f"Payload: {payload}", severity='DEBUG')
         task = {
             'http_request': {  # Specify the type of request.
                 'http_method': tasks_v2.HttpMethod.POST,
