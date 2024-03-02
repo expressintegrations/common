@@ -5,6 +5,7 @@ from typing import List
 import requests
 
 from common.models.northtext.contacts import ContactsResponse, ContactCreateRequest, Contact
+from common.models.northtext.errors import ErrorResponse
 from common.models.northtext.messages import (
     MessagesResponse, MessageSendRequest, Message, MessageResponse,
     BulkMessagesResponse
@@ -12,6 +13,14 @@ from common.models.northtext.messages import (
 from common.models.northtext.users import UsersResponse
 from common.models.northtext.webhooks import WebhookCreateRequest, WebhookDeleteResponse, WebhookResponse
 from common.services.base import BaseService
+
+
+class NotEnoughFundsException(Exception):
+    def __init__(self, message: str):
+        self.message = message
+
+    def __str__(self):
+        return self.message
 
 
 class NorthTextService(BaseService):
@@ -45,6 +54,11 @@ class NorthTextService(BaseService):
                 headers=self.headers
             )
         if r.status_code >= 400:
+            error_response = ErrorResponse.model_validate(r.json())
+            if error_response.description == 'Not enough available balance.':
+                raise NotEnoughFundsException(
+                    message="Your account does not have enough funds to send the requested messages."
+                )
             raise Exception(f"Error {r.status_code} {r.text}")
         return r.json()
 
