@@ -23,7 +23,7 @@ setup(
         'PyJWT==2.8.0',
         'pytz',
         'requests==2.31.0',
-        'starlette==0.37.1',
+        'starlette==0.36.3',
         'stripe~=5.2.0',
         'urllib3==1.26.14',
         'uvicorn==0.27.1'
