@@ -30,6 +30,18 @@ class FirestoreService(BaseService):
     def get_app_docs(self):
         return self.firestore_client.collection('apps').list_documents()
 
+    def get_app_doc_field(self, app_name: str, field_name: str) -> Any:
+        app_doc = self.firestore_client.collection('apps').document(
+            app_name
+        )
+
+        if not app_doc.get().exists:
+            app_doc.set(
+                {'created': datetime.now()}
+            )
+        doc_data = dict() if not app_doc.get().exists else app_doc.get().to_dict()
+        return doc_data.get(field_name)
+
     def get_account_doc(self, app_name: str, account_id: [int | str]):
         app_doc = self.firestore_client.collection(
             'apps'
