@@ -7,10 +7,16 @@ from pydantic import BaseModel
 class EventType(str, Enum):
     INSTALL = "install"
     UNINSTALL = "uninstall"
-    APP_SUBSCRIPTION_CREATED = "app_subscription_created"
-    APP_SUBSCRIPTION_CHANGED = "app_subscription_changed"
-    APP_SUBSCRIPTION_CANCELLED = "app_subscription_cancelled_by_user"
-    APP_SUBSCRIPTION_RENEWED = "app_subscription_renewed"
+    CREATED = "app_subscription_created"
+    CHANGED = "app_subscription_changed"
+    CANCELLED_BY_USER = "app_subscription_cancelled_by_user"
+    RENEWED = "app_subscription_renewed"
+    CANCELLED = "app_subscription_cancelled"
+    CANCELLATION_REVOKED_BY_USER = "app_subscription_cancellation_revoked_by_user"
+    RENEWAL_ATTEMPT_FAILED = "app_subscription_renewal_attempt_failed"
+    RENEWAL_FAILED = "app_subscription_renewal_failed"
+    TRIAL_SUBSCRIPTION_STARTED = "app_trial_subscription_started"
+    TRIAL_SUBSCRIPTION_ENDED = "app_trial_subscription_ended"
 
 
 class VersionData(BaseModel):
