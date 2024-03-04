@@ -1,5 +1,25 @@
+import json
+import random
+import string
 from datetime import timedelta, datetime
 from functools import lru_cache, wraps
+
+
+def randomword(length):
+    letters = string.ascii_lowercase
+    return ''.join(random.choice(letters) for i in range(length))
+
+
+def is_json(value):
+    if not value:
+        return False
+    if not isinstance(value, str):
+        return False
+    try:
+        json.loads(value)
+    except ValueError:
+        return False
+    return True
 
 
 def timed_lru_cache(seconds: int, maxsize: int = 128):
