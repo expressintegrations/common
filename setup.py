@@ -7,7 +7,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         'anvil-uplink==0.4.2',
-        'cryptography==42.0.5',
+        'cryptography==41.0.7',
         'dependency-injector==4.41.0',
         'fastapi==0.110.0',
         'google-cloud-firestore==2.11.1',
