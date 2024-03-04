@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
@@ -9,6 +11,8 @@ class AuthToken(BaseModel):
     exp: int
     short_lived_token: str
     iat: int
+    recipe_id: Optional[str] = None
+    back_to_url: Optional[str] = None
 
     class Config:
         populate_by_name = True
