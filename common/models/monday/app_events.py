@@ -1,3 +1,4 @@
+from datetime import datetime
 from enum import Enum
 from typing import Optional
 
@@ -20,33 +21,36 @@ class EventType(str, Enum):
 
 
 class VersionData(BaseModel):
-    major: Optional[int] = None
-    minor: Optional[int] = None
-    patch: Optional[int] = None
-    type: Optional[str] = None
+    major: int
+    minor: int
+    patch: int
+    type: str
 
 
 class Subscription(BaseModel):
-    plan_id: Optional[str] = None
-    renewal_date: Optional[str] = None
-    is_trial: Optional[bool] = None
-    billing_period: Optional[str] = None
-    days_left: Optional[int] = None
-    pricing_version: Optional[int] = None
+    plan_id: str
+    renewal_date: datetime
+    is_trial: bool
+    billing_period: str
+    days_left: int
+    pricing_version: int
 
 
 class AppEventData(BaseModel):
-    app_id: Optional[int] = None
-    user_id: Optional[int] = None
-    user_email: Optional[str] = None
-    user_name: Optional[str] = None
-    user_cluster: Optional[str] = None
-    account_tier: Optional[str] = None
-    account_max_users: Optional[int] = None
-    account_id: Optional[int] = None
+    app_id: int
+    user_id: int
+    user_email: str
+    user_name: str
+    user_cluster: str
+    account_tier: str
+    account_max_users: int
+    account_id: int
+    account_name: str
+    account_slug: str
     version_data: Optional[VersionData] = None
-    timestamp: Optional[str] = None
+    timestamp: datetime
     subscription: Optional[Subscription] = None
+    user_country: str
 
 
 class AppEvent(BaseModel):
