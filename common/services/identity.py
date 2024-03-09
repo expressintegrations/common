@@ -1,6 +1,7 @@
 from common.models.oauth.identity import Identity
 from common.services.base import BaseService
 from common.services.hubspot import HubSpotService
+from common.services.northtext import NorthTextService
 
 
 class IdentityService(BaseService):
@@ -12,6 +13,23 @@ class IdentityService(BaseService):
 
     def express_integrations(self, token: str) -> Identity:
         return self.get_hubspot_identity_from_token(token=token)
+
+    def northtext(self, token: str) -> Identity:
+        return self.get_northtext_identity_from_token(token=token)
+
+    @staticmethod
+    def get_northtext_identity_from_token(token: str) -> Identity:
+        northtext_service = NorthTextService(
+            access_token=token
+        )
+        account_response = northtext_service.get_self()
+        return Identity(
+            email=account_response.result.email,
+            first_name=account_response.result.first_name,
+            last_name=account_response.result.last_name,
+            account_id=account_response.result.id,
+            account_name=account_response.result.company
+        )
 
     @staticmethod
     def get_hubspot_identity_from_token(token: str) -> Identity:

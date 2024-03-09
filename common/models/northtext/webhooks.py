@@ -42,6 +42,7 @@ class DeliveryReceipt(BaseModel):
     body: Optional[str] = None
     attachment_url: Optional[str] = None
     number: Optional[str] = None
+    contact_id: Optional[int] = None
     mass_message_id: Optional[str] = None
     message_id: Optional[int] = None
     user_id: Optional[str] = None
