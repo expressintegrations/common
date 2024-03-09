@@ -22,6 +22,7 @@ setup(
         'pydantic==2.6.3',
         'PyJWT==2.8.0',
         'pytz',
+        'PyYAML==6.0.1',
         'requests==2.31.0',
         'starlette==0.36.3',
         'stripe~=5.2.0',
