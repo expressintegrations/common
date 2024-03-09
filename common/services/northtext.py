@@ -4,6 +4,7 @@ from typing import List
 
 import requests
 
+from common.models.northtext.account import AccountResponse
 from common.models.northtext.contacts import ContactsResponse, ContactCreateRequest, Contact
 from common.models.northtext.errors import ErrorResponse
 from common.models.northtext.messages import (
@@ -61,6 +62,13 @@ class NorthTextService(BaseService):
                 )
             raise Exception(f"Error {r.status_code} {r.text}")
         return r.json()
+
+    def get_self(self) -> AccountResponse:
+        response = self.api_call(
+            method='get',
+            endpoint=f"/api/v2/account"
+        )
+        return AccountResponse.model_validate(response)
 
     def get_users(self) -> UsersResponse:
         response = self.api_call(
