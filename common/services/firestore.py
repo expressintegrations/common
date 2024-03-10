@@ -439,16 +439,17 @@ class FirestoreService(BaseService):
         merge_data: dict
     ):
         chunk_size = 500
+        enrollments_collection = self.get_account_doc(
+            app_name=app_name,
+            account_id=portal_id
+        ).collection(
+            f'{function_name}_enrollments'
+        )
         while enrollment_ids:
             batch = self.firestore_client.batch()
             chunk, enrollment_ids = enrollment_ids[:chunk_size], enrollment_ids[chunk_size:]
             for enrollment_id in chunk:
-                enrollment_doc = self.get_account_doc(
-                    app_name=app_name,
-                    account_id=portal_id
-                ).collection(
-                    f'{function_name}_enrollments'
-                ).document(
+                enrollment_doc = enrollments_collection.document(
                     enrollment_id
                 )
                 batch.update(enrollment_doc, merge_data)
