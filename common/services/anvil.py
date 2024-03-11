@@ -331,3 +331,13 @@ class AnvilService(BaseService):
         if not keep_alive:
             self.disconnect_from_anvil()
         return integration
+
+    def get_feature_by_external_id(self, external_id: str, keep_alive: bool = True):
+        if not self.connected:
+            self.connect()
+        feature = app_tables.features.get(
+            external_id=external_id
+        )
+        if not keep_alive:
+            self.disconnect_from_anvil()
+        return feature
