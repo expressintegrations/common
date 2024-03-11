@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
 
-class FieldOption(BaseModel):
+class DynamicFieldOption(BaseModel):
     id: str
     title: str
     outbound_type: str
