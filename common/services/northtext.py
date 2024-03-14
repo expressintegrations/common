@@ -5,7 +5,7 @@ from typing import List
 import requests
 
 from common.models.northtext.account import AccountResponse
-from common.models.northtext.contacts import ContactsResponse, ContactCreateRequest, Contact
+from common.models.northtext.contacts import ContactsResponse, ContactCreateRequest, Contact, ContactResponse
 from common.models.northtext.errors import ErrorResponse
 from common.models.northtext.messages import (
     MessagesResponse, MessageSendRequest, Message, MessageResponse,
@@ -162,28 +162,28 @@ class NorthTextService(BaseService):
             contacts += contacts_response.result
         return contacts
 
-    def create_contact(self, contact: ContactCreateRequest) -> Contact:
+    def create_contact(self, contact: ContactCreateRequest) -> ContactResponse:
         response = self.api_call(
             method='post',
             endpoint=f"/api/v2/contact",
             json=contact.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
         )
-        return Contact.model_validate(response)
+        return ContactResponse.model_validate(response)
 
-    def get_contact(self, contact_id: int) -> Contact:
+    def get_contact(self, contact_id: int) -> ContactResponse:
         response = self.api_call(
             method='get',
             endpoint=f"/api/v2/contact/{contact_id}"
         )
-        return Contact.model_validate(response)
+        return ContactResponse.model_validate(response)
 
-    def update_contact(self, contact_id: int, contact: Contact) -> Contact:
+    def update_contact(self, contact_id: int, contact: Contact) -> ContactResponse:
         response = self.api_call(
             'put',
             f"/api/v2/contact/{contact_id}",
             json=contact.model_dump(by_alias=True, exclude_none=True, exclude_unset=True)
         )
-        return Contact.model_validate(response)
+        return ContactResponse.model_validate(response)
 
     def create_webhook(self, webhook: WebhookCreateRequest) -> WebhookResponse:
         response = self.api_call(
