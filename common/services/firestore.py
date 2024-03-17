@@ -1,11 +1,15 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, List
+from typing import Any, List, Type
 
+from firedantic import ModelNotFoundError, configure
 from google.cloud import firestore
 from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
 
 from common.core.utils import timed_lru_cache
+from common.models.firestore.connections import Connection
+from common.models.firestore.installations import Installation
+from common.models.firestore.integrations import Integration
 from common.models.hubspot.workflow_actions import WorkflowOptionsResponse
 from common.models.oauth.tokens import Token
 from common.services.base import BaseService
@@ -17,6 +21,7 @@ class FirestoreService(BaseService):
         firestore_client: firestore.Client
     ) -> None:
         self.firestore_client = firestore_client
+        configure(self.firestore_client)
         super().__init__(
             log_name='firestore.service',
             exclude_inputs=[
@@ -26,6 +31,106 @@ class FirestoreService(BaseService):
                 'get_account_connection'
             ]
         )
+
+    @staticmethod
+    def get_installation_by_id(integration_name: str, installation_id: str) -> Installation:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        try:
+            installation = installation_model.get_by_id(installation_id)
+        except ModelNotFoundError:
+            installation = installation_model()
+        return installation
+
+    @staticmethod
+    def get_installation_by_account_identifier(
+        integration_name: str,
+        account_identifier: [str | int]
+    ) -> Installation:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        return installation_model.find_one({'account_identifier': str(account_identifier)})
+
+    @staticmethod
+    def create_installation(integration_name: str, installation: Installation):
+        Installation.__collection__ = f'integrations/{integration_name}/installations'
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        new_installation = installation_model(**installation.model_dump(exclude_unset=True))
+        new_installation.save(exclude_unset=True)
+        return new_installation
+
+    @staticmethod
+    def get_connection_by_app_name(
+        integration_name: str,
+        installation_id: str,
+        app_name: str
+    ) -> Connection:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        installation = installation_model.get_by_id(installation_id)
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({'app_name': app_name})
+
+    @staticmethod
+    def get_connection_by_app_account_identifier(
+        integration_name: str,
+        account_identifier: [str | int],
+        app_name: str
+    ) -> Connection:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        installation = installation_model.find_one({'account_identifier': str(account_identifier)})
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({'app_name': app_name})
+
+    @staticmethod
+    def create_connection(integration_name: str, installation_id: str, connection: Connection) -> Connection:
+        Connection.__collection__ = f'integrations/{integration_name}/installations/{installation_id}/connections'
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        try:
+            installation = installation_model.get_by_id(installation_id)
+        except ModelNotFoundError:
+            installation = installation_model()
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        new_connection = connection_model(**connection.model_dump(exclude_unset=True))
+        new_connection.save(exclude_unset=True)
+        return new_connection
+
+    @staticmethod
+    def get_connection_by_id(
+        integration_name: str,
+        installation_id: str,
+        connection_id: str
+    ) -> Connection:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        try:
+            installation = installation_model.get_by_id(installation_id)
+        except ModelNotFoundError:
+            installation = installation_model()
+        connection_model: Type[Connection] = Connection.model_for(installation)
+
+        try:
+            connection = connection_model.get_by_id(connection_id)
+        except ModelNotFoundError:
+            connection = connection_model()
+        return connection
+
+    @staticmethod
+    def get_connections_for_installation(
+        integration_name: str,
+        installation_id: str
+    ) -> List[Connection]:
+        integration = Integration.get_by_id(integration_name)
+        installation_model: Type[Installation] = Installation.model_for(integration)
+        try:
+            installation = installation_model.get_by_id(installation_id)
+        except ModelNotFoundError:
+            installation = installation_model()
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find()
 
     def get_app_docs(self):
         return self.firestore_client.collection('apps').list_documents()
