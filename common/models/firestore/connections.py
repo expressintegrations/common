@@ -19,7 +19,8 @@ class Authorization(BaseModel):
 
     # Snowflake
     account_identifier: Optional[str] = None
-    account_url: Optional[str] = None
+    region: Optional[str] = None
+    cloud_platform: Optional[str] = None
     username: Optional[str] = None
     role: Optional[str] = None
     warehouse: Optional[str] = None
