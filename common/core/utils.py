@@ -1,5 +1,6 @@
 import json
 import random
+import re
 import string
 from datetime import timedelta, datetime
 from functools import lru_cache, wraps
@@ -50,3 +51,17 @@ def to_title_case(snake_case_string):
     title_case_string = ''.join(title_words)
 
     return title_case_string
+
+
+def format_sf(text, suffix=None, safe=False):
+    text = re.sub(r'"+', '', text)
+    has_special_chars = re.search(r'[^0-9a-zA-Z_. ]', text)
+    if has_special_chars:
+        text = re.sub(r'[^0-9a-zA-Z]+', '_', text) if safe else f"\"{text}\""
+    else:
+        text = re.sub(r'[\W_]+', '_', text)
+    if text[0].isdigit():
+        text = f"n_{text}"
+    if suffix:
+        text = f"{text}{suffix}"
+    return text.lower().strip().strip('_')

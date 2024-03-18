@@ -1,6 +1,22 @@
+from enum import Enum
 from typing import Optional
 
 from firedantic import Model
+
+
+class FeatureEvent(str, Enum):
+    CHANGE_SPECIFIC_COLUMN_VALUE = 'change_specific_column_value'
+    CHANGE_COLUMN_VALUE = 'change_column_value'
+    CREATE_ITEM = 'create_item'
+    ARCHIVE_ITEM = 'archive_item'
+    DELETE_ITEM = 'delete_item'
+
+
+class FeatureType(str, Enum):
+    UPDATE_COLUMN_VALUE = 'update_column_value'
+    CREATE_PULSE = 'create_pulse'
+    ARCHIVE_PULSE = 'archive_pulse'
+    DELETE_PULSE = 'delete_pulse'
 
 
 class Feature(Model):
@@ -10,6 +26,8 @@ class Feature(Model):
     external_id: Optional[str] = None
     version: Optional[str] = None
     feature_group_id: Optional[str] = None
+    event: Optional[FeatureEvent] = None
+    type: Optional[FeatureType] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """
