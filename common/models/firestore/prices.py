@@ -5,8 +5,8 @@ from firedantic import Model
 
 class Price(Model):
     __collection__ = 'prices'
-    name: str
-    product_id: str
+    name: Optional[str] = None
+    product_id: Optional[str] = None
     stripe_id: Optional[str] = None
     stripe_object: Optional[dict] = None
 

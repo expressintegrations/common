@@ -5,7 +5,7 @@ from firedantic import Model
 
 class Product(Model):
     __collection__ = 'products'
-    name: str
+    name: Optional[str] = None
     category: Optional[str] = None
     integration_name: Optional[str] = None
     description: Optional[str] = None
