@@ -1,12 +1,18 @@
 from datetime import datetime
+from enum import Enum
 from typing import Optional
 
 from firedantic import SubModel, SubCollection
 from pydantic import BaseModel
 
 
+class AuthMethod(str, Enum):
+    OAUTH = 'OAuth 2.0'
+    API_KEY = 'API Key'
+
+
 class Authorization(BaseModel):
-    authentication_method: str
+    authentication_method: AuthMethod
 
     # API Key
     api_key: Optional[str] = None
@@ -28,6 +34,9 @@ class Authorization(BaseModel):
     token_type: Optional[str] = None
     expires_at: Optional[int] = int(datetime.now().timestamp()) + expires_in
 
+    # HubSpot
+    private_token: Optional[bool] = None
+
 
 class Connection(SubModel):
     account_identifier: Optional[str] = None
@@ -42,7 +51,7 @@ class Connection(SubModel):
     ever_connected: bool = False
 
     class Collection(SubCollection):
-        __collection_tpl__ = 'integrations/{integration_name}/installations/{id}/connections'
+        __collection_tpl__ = 'installations/{id}/connections'
 
     def save(self, by_alias: bool = True, exclude_unset: bool = False, exclude_none: bool = False) -> None:
         """

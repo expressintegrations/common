@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Optional, List
 
-from firedantic import SubModel, SubCollection
+from firedantic import Model
 from pydantic import BaseModel
 
 
@@ -10,7 +10,8 @@ class Output(BaseModel):
     url: str
 
 
-class Installation(SubModel):
+class Installation(Model):
+    __collection__ = 'installations'
     integration_name: Optional[str] = None
     account_identifier: Optional[str] = None
     account_id: Optional[str] = None
@@ -28,9 +29,6 @@ class Installation(SubModel):
     back_to_url: Optional[str] = None
     step_completed: Optional[int] = 0
     final_output: Optional[List[Output]] = None
-
-    class Collection(SubCollection):
-        __collection_tpl__ = 'integrations/{id}/installations'
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """
