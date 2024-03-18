@@ -19,6 +19,8 @@ class Installation(Model):
     installed_by_id: Optional[str] = None
     subscription_id: Optional[str] = None
     hs_deal_id: Optional[str] = None
+    price_id: Optional[str] = None
+    attempted_feature_id: Optional[str] = None
     active: Optional[bool] = False
     installation_in_progress: Optional[bool] = False
     installed_at: Optional[datetime] = None

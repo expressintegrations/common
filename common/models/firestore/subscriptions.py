@@ -9,6 +9,7 @@ class Subscription(Model):
     account_id: Optional[str] = None
     stripe_id: Optional[str] = None
     installation_ids: Optional[List[str]] = None
+    hs_subscription_id: Optional[str] = None
     price_ids: Optional[List[str]] = None
     active: Optional[bool] = False
     is_trial: Optional[bool] = False
@@ -17,7 +18,6 @@ class Subscription(Model):
     cancel_at_period_end: Optional[bool] = False
     checkout_session_id: Optional[str] = None
     stripe_object: Optional[dict] = None
-    attempted_feature_id: Optional[str] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = False, exclude_none: bool = False) -> None:
         """
