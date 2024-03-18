@@ -26,5 +26,5 @@ class IntegrationRun(BaseModel):
         alias_generator = to_camel
 
 
-class Payload(BaseModel):
+class ActionPayload(BaseModel):
     payload: IntegrationRun
