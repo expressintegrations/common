@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional
+from typing import Optional, Any
 
 from firedantic import Model
 
@@ -9,4 +9,4 @@ class SnowflakeObject(Model):
     __ttl_field__ = "timestamp"
 
     timestamp: Optional[datetime] = datetime.now() + timedelta(minutes=10)
-    content: Optional[str] = None
+    content: Optional[Any] = None
