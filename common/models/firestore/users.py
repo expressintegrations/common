@@ -1,23 +1,16 @@
-from datetime import datetime
 from typing import Optional
 
 from firedantic import Model
-from pydantic import BaseModel
 
 
-class AccountSource(BaseModel):
-    integration_name: str
-
-
-class Account(Model):
-    __collection__ = 'accounts'
-    name: str
-    account_identifier: Optional[str] = None
-    stripe_customer_id: Optional[str] = None
-    hs_company_id: Optional[str] = None
-    created_at: Optional[datetime] = None
-    active: Optional[bool] = None
-    source: Optional[AccountSource] = None
+class User(Model):
+    __collection__ = 'users'
+    email: str
+    first_name: Optional[str] = None
+    last_name: Optional[str] = None
+    account_id: str
+    hs_contact_id: Optional[str] = None
+    anvil_user_id: Optional[str] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """

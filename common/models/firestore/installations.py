@@ -13,10 +13,10 @@ class Output(BaseModel):
 class Installation(SubModel):
     integration_name: Optional[str] = None
     account_identifier: Optional[str] = None
-    anvil_account_id: Optional[str] = None
+    account_id: Optional[str] = None
     account_name: Optional[str] = None
-    anvil_installed_by_id: Optional[str] = None
-    anvil_subscription_id: Optional[str] = None
+    installed_by_id: Optional[str] = None
+    subscription_id: Optional[str] = None
     hs_deal_id: Optional[str] = None
     active: Optional[bool] = False
     installation_in_progress: Optional[bool] = False

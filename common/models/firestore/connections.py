@@ -31,8 +31,8 @@ class Authorization(BaseModel):
 
 class Connection(SubModel):
     account_identifier: Optional[str] = None
-    anvil_account_id: Optional[str] = None
-    anvil_authorized_by_id: Optional[str] = None
+    account_id: Optional[str] = None
+    authorized_by_id: Optional[str] = None
     app_name: Optional[str] = None
     authorization: Optional[Authorization] = None
     connected: bool = False

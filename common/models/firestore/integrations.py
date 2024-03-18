@@ -1,6 +1,5 @@
 from typing import Optional, List
 
-from pydantic import BaseModel
 from firedantic import Model
 
 from common.models.firestore.applications import FieldInput
