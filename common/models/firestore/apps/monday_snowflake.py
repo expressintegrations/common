@@ -9,5 +9,4 @@ class MondayObject(Model):
     __ttl_field__ = "timestamp"
 
     timestamp: Optional[datetime] = datetime.now() + timedelta(minutes=10)
-    object_id: Optional[str] = None
     content: Optional[str] = None
