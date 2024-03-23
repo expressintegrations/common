@@ -15,11 +15,12 @@ class InboundFieldValues(BaseModel):
     table_column: Optional[Reference] = None
     boolean_column: Optional[Reference] = None
     boolean_value: Optional[Reference] = None
-    schema: Optional[str] = None
+    schema: Optional[Reference] = None
     table_name: Optional[str] = None
     item_id: Optional[str] = None
     error_column_id: Optional[str] = None
     row: Optional[dict] = None
+    workspace: Optional[Reference] = None
 
     class Config:
         populate_by_name = True
@@ -27,9 +28,9 @@ class InboundFieldValues(BaseModel):
 
 
 class IntegrationRun(BaseModel):
-    recipe_id: int
-    integration_id: int
-    inbound_field_values: InboundFieldValues
+    recipe_id: Optional[int] = None
+    integration_id: Optional[int] = None
+    inbound_field_values: Optional[InboundFieldValues] = None
     account_id: Optional[int] = None
     user_id: Optional[int] = None
 
