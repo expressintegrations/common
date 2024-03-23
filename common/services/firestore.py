@@ -474,6 +474,33 @@ class FirestoreService(BaseService):
             )
         )
 
+    def get_bulk_enrollments_by_field(
+        self,
+        app_name: str,
+        portal_id: Any,
+        function_name: str,
+        field_name: str,
+        field_value: Any
+    ):
+        return self.get_account_doc(
+            app_name=app_name,
+            account_id=portal_id
+        ).collection(
+            f'{function_name}_enrollments'
+        ).where(
+            filter=FieldFilter(
+                field_path="completed",
+                op_string="==",
+                value=False
+            )
+        ).where(
+            filter=FieldFilter(
+                field_path=field_name,
+                op_string="==",
+                value=field_value
+            )
+        )
+
 
 class ConnectionNotFoundException(Exception):
     def __init__(self, message: str):
