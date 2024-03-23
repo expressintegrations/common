@@ -472,7 +472,7 @@ class FirestoreService(BaseService):
                 op_string="==",
                 value=False
             )
-        ).limit(1000)
+        )
 
 
 class ConnectionNotFoundException(Exception):
