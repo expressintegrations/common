@@ -489,12 +489,6 @@ class FirestoreService(BaseService):
             f'{function_name}_enrollments'
         ).where(
             filter=FieldFilter(
-                field_path="completed",
-                op_string="==",
-                value=False
-            )
-        ).where(
-            filter=FieldFilter(
                 field_path=field_name,
                 op_string="==",
                 value=field_value
