@@ -7,8 +7,8 @@ from common.models.firestore.applications import FieldInput
 
 class Integration(Model):
     __collection__ = 'integrations'
-    label: str
-    name: str
+    label: Optional[str] = None
+    name: Optional[str] = None
     required_application_ids: Optional[List[str]] = []
     identity_application_id: Optional[str] = None
     external_billing: Optional[bool] = None

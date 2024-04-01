@@ -11,7 +11,7 @@ class AccountSource(BaseModel):
 
 class Account(Model):
     __collection__ = 'accounts'
-    name: str
+    name: Optional[str] = None
     account_identifier: Optional[str] = None
     stripe_customer_id: Optional[str] = None
     hs_company_id: Optional[str] = None

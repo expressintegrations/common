@@ -10,18 +10,18 @@ class FieldItem(BaseModel):
 
 
 class FieldInput(BaseModel):
-    name: str
+    name: Optional[str] = None
     description: Optional[str] = None
-    label: str
+    label: Optional[str] = None
     dependent_on_field: Optional[str] = None
     dependent_on_field_value: Optional[Any] = None
-    type: str
+    type: Optional[str] = None
     conditionally_display_on_field: Optional[str] = None
     conditionally_display_on_field_value: Optional[Any] = None
-    hide_text: bool
+    hide_text: Optional[bool] = None
     items: Optional[List[FieldItem]] = []
-    visible: bool
-    required: bool
+    visible: Optional[bool] = None
+    required: Optional[bool] = None
 
 
 class Application(Model):

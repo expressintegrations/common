@@ -45,11 +45,11 @@ class Connection(SubModel):
     authorized_by_id: Optional[str] = None
     app_name: Optional[str] = None
     authorization: Optional[Authorization] = None
-    connected: bool = False
+    connected: Optional[bool] = False
     connected_at: Optional[datetime] = None
     connection_error: Optional[str] = None
     created_at: datetime = datetime.now()
-    ever_connected: bool = False
+    ever_connected: Optional[bool] = False
 
     class Collection(SubCollection):
         __collection_tpl__ = 'installations/{id}/connections'

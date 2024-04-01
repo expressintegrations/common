@@ -5,10 +5,10 @@ from firedantic import Model
 
 class User(Model):
     __collection__ = 'users'
-    email: str
+    email: Optional[str] = None
     first_name: Optional[str] = None
     last_name: Optional[str] = None
-    account_id: str
+    account_id: Optional[str] = None
     hs_contact_id: Optional[str] = None
     anvil_user_id: Optional[str] = None
 
