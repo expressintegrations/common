@@ -12,7 +12,7 @@ class AuthMethod(str, Enum):
 
 
 class Authorization(BaseModel):
-    authentication_method: AuthMethod
+    authentication_method: Optional[AuthMethod] = None
 
     # API Key
     api_key: Optional[str] = None
