@@ -34,6 +34,7 @@ class Authorization(BaseModel):
     refresh_token: Optional[str] = None
     token_type: Optional[str] = None
     expires_at: Optional[int] = int(datetime.now().timestamp()) + expires_in
+    id_token: Optional[str] = None
 
     # HubSpot
     private_token: Optional[bool] = None
