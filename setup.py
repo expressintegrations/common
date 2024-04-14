@@ -7,10 +7,11 @@ setup(
     packages=find_packages(),
     install_requires=[
         'anvil-uplink==0.4.2',
-        'cryptography==41.0.7',
+        'cryptography==42.0.5',
         'dependency-injector==4.41.0',
-        'fastapi==0.104.0',
-        'google-cloud-firestore==2.11.1',
+        'fastapi==0.110.0',
+        'firedantic==0.6.0',
+        'google-cloud-firestore==2.15.0',
         'google-cloud-logging==3.5.0',
         'google-cloud-run==0.10.0',
         'google-cloud-scheduler==2.13.2',
@@ -24,9 +25,10 @@ setup(
         'pytz',
         'PyYAML==6.0.1',
         'requests==2.31.0',
-        'starlette==0.27.0',
+        'snowflake-connector-python==3.7.1',
+        'starlette==0.36.3',
         'stripe~=5.2.0',
-        'urllib3==1.26.14',
+        'urllib3==2.2.1',
         'uvicorn==0.27.1'
     ],
 )

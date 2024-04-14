@@ -1,5 +1,6 @@
 import stripe
 
+from common.models.firestore.integrations import Integration
 from common.services.base import BaseService
 
 
@@ -13,9 +14,9 @@ class StripeService(BaseService):
         stripe.api_key = stripe_key
         super().__init__(log_name='stripe.service')
 
-    def get_billing_portal_configuration(self, base_url, integration):
-        if integration['stripe_billing_portal_config_id']:
-            return integration['stripe_billing_portal_config_id']
+    def get_billing_portal_configuration(self, base_url, integration: Integration):
+        if integration.stripe_billing_portal_config_id:
+            return integration.stripe_billing_portal_config_id
         features = {
             "customer_update": {
                 "allowed_updates": ["name", "email", "address", "phone", "tax_id"],
@@ -33,11 +34,14 @@ class StripeService(BaseService):
                 "mode": "at_period_end"
             }
         }
+        products = [
+            self.get_product(product_id=product_id) for product_id in integration.product_ids
+        ]
         if len(
             [
-                prod for prod in integration['products']
+                prod for prod in products
                 if len(
-                    [p['stripe_id'] for p in prod['prices'] if p['stripe_object']['billing_scheme'] == 'per_unit']
+                    [price for price in prod['prices'] if price['billing_scheme'] == 'per_unit']
                 ) > 0
             ]
         ) > 0:
@@ -51,11 +55,11 @@ class StripeService(BaseService):
                             price['stripe_id'] for price in product['prices']
                             if price['stripe_object']['billing_scheme'] == 'per_unit'
                         ]
-                    } for product in integration['products']
+                    } for product in products
                     if len(
                         [
-                            price['stripe_id'] for price in product['prices']
-                            if price['stripe_object']['billing_scheme'] == 'per_unit'
+                            price['id'] for price in product['prices']
+                            if price['billing_scheme'] == 'per_unit'
                         ]
                     ) > 0
                 ]
@@ -64,13 +68,13 @@ class StripeService(BaseService):
         config = self.stripe_client.billing_portal.Configuration.create(
             features=features,
             business_profile={
-                "headline": f"Manage your {integration['label']} subscription",
+                "headline": f"Manage your {integration.label} subscription",
                 "privacy_policy_url": "https://www.expressintegrations.com/privacy",
                 "terms_of_service_url": "https://www.expressintegrations.com/tos",
             },
             default_return_url=f"{base_url}/#my-integrations",
             metadata={
-                "integration_id": integration.get_id()
+                "integration_id": integration.name
             }
         )
         integration['stripe_billing_portal_config_id'] = config['id']
@@ -100,14 +104,14 @@ class StripeService(BaseService):
             }
         )
 
-    def get_billing_session_for_installation(self, base_url: str, installation):
+    def get_billing_session(self, base_url: str, customer_id: str, integration: Integration):
         try:
             billing_portal_config_id = self.get_billing_portal_configuration(
                 base_url=base_url,
-                integration=installation['integration']
+                integration=integration
             )
             billing_session = stripe.billing_portal.Session.create(
-                customer=installation['account']['stripe_customer_id'],
+                customer=customer_id,
                 configuration=billing_portal_config_id
             )
             return billing_session

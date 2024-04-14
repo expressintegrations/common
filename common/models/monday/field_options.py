@@ -1,4 +1,4 @@
-from typing import Optional, List
+from typing import Optional, List, Any
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
@@ -23,10 +23,18 @@ class OptionsResponse(BaseModel):
         alias_generator = to_camel
 
 
+class DependencyValue(BaseModel):
+    value: Any
+
+
+class Dependencies(BaseModel):
+    table: Optional[DependencyValue] = None
+
+
 class OptionsRequest(BaseModel):
     board_id: Optional[int] = None
     automation_id: int
-    dependency_data: Optional[dict] = None
+    dependency_data: Optional[Dependencies] = None
     recipe_id: int
     integration_id: int
     page_request_data: Optional[Page] = None

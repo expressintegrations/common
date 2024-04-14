@@ -30,10 +30,10 @@ class NorthTextService(BaseService):
 
     def __init__(
         self,
-        access_token: str = None
+        api_key: str = None
     ) -> None:
-        if access_token:
-            self.headers['X-API-Key'] = access_token
+        if api_key:
+            self.headers['X-API-Key'] = api_key
         else:
             raise Exception('An access token must be provided')
         super().__init__(log_name='northtext.service')

@@ -92,10 +92,17 @@ class MondayService(BaseService):
         return self.monday_client.boards.fetch_boards(**clean_params)['data']['boards']
 
     def get_board_ids(self, **params):
+        params['page'] = 1
         clean_params = {
             k: v if v not in [None, ''] else 'null' for k, v in params.items()
         }
-        return self.monday_client.boards.fetch_board_ids(**clean_params)['data']['boards']
+        board_ids = self.monday_client.boards.fetch_board_ids(**clean_params)['data']['boards']
+        all_board_ids = list(board_ids)
+        while len(board_ids) == 100:
+            params['page'] += 1
+            board_ids = self.monday_client.boards.fetch_board_ids(**clean_params)['data']['boards']
+            all_board_ids += board_ids
+        return all_board_ids
 
     def get_board_columns(self, board_id):
         data = self.monday_client.boards.fetch_boards_by_id(board_ids=board_id)['data']

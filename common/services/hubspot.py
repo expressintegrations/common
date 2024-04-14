@@ -460,14 +460,14 @@ class HubSpotService(BaseService):
             results += response.results
         return results
 
-    def get_associations(self, from_object_type: str, from_object_id: int, to_object_type: str):
+    def get_associations(self, from_object_type: str, from_object_id: [int | str], to_object_type: str):
         return self.hubspot_client.crm.associations.batch_api.read(
             from_object_type=from_object_type,
             to_object_type=to_object_type,
             batch_input_public_object_id=BatchInputPublicObjectId(inputs=[{"id": from_object_id}])
         )
 
-    def get_all_associations_v4(self, from_object_type: str, from_object_id: int, to_object_type: str, after=None):
+    def get_all_associations_v4(self, from_object_type: str, from_object_id: [int | str], to_object_type: str, after=None):
         batch_request = {
             "inputs": [
                 {
@@ -533,7 +533,7 @@ class HubSpotService(BaseService):
             results += response.results
         return results
 
-    def delete_objects_batch(self, object_type: str, object_ids: List[int]):
+    def delete_objects_batch(self, object_type: str, object_ids: List[int | str]):
         chunk_size = 100
         while object_ids:
             chunk, object_ids = object_ids[:chunk_size], object_ids[chunk_size:]
@@ -553,7 +553,7 @@ class HubSpotService(BaseService):
         self,
         object_type: str,
         properties: dict,
-        associated_object_id: int = None,
+        associated_object_id: [int | str] = None,
         association_type_id: int = None
     ):
         create_request = {
@@ -578,23 +578,23 @@ class HubSpotService(BaseService):
             simple_public_object_input_for_create=create_request
         )
 
-    def get_object(self, object_type: str, object_id: int, properties: List[str]):
+    def get_object(self, object_type: str, object_id: [int | str], properties: List[str]):
         return self.hubspot_client.crm.objects.basic_api.get_by_id(
             object_type=object_type,
-            object_id=object_id,
+            object_id=int(object_id),
             properties=properties
         )
 
-    def update_object(self, object_type: str, object_id: int, properties: dict):
+    def update_object(self, object_type: str, object_id: [int | str], properties: dict):
         return self.hubspot_client.crm.objects.basic_api.update(
             object_type=object_type,
-            object_id=object_id,
+            object_id=int(object_id),
             simple_public_object_input=SimplePublicObjectInput(
                 properties=properties
             )
         )
 
-    def merge_objects(self, object_type: str, primary_object_id: int, object_id_to_merge: int):
+    def merge_objects(self, object_type: str, primary_object_id: [int | str], object_id_to_merge: int):
         return self.hubspot_client.crm.objects.public_object_api.merge(
             object_type=object_type,
             public_merge_input={
@@ -603,7 +603,7 @@ class HubSpotService(BaseService):
             }
         )
 
-    def add_attachment(self, object_type: str, object_id: int, file_id: Union[int, str]):
+    def add_attachment(self, object_type: str, object_id: [int | str], file_id: Union[int, str]):
         note_associations = self.hubspot_client.crm.associations.v4.schema.definitions_api.get_all(
             from_object_type="notes",
             to_object_type=object_type
@@ -639,7 +639,7 @@ class HubSpotService(BaseService):
     def update_associated_objects(
         self,
         from_object_type: str,
-        from_object_id: int,
+        from_object_id: [int | str],
         to_object_type: str,
         properties: dict
     ):
@@ -659,9 +659,9 @@ class HubSpotService(BaseService):
     def copy_associations_to_other_object(
         self,
         from_object_type: str,
-        from_object_id: int,
+        from_object_id: [int | str],
         to_object_type: str,
-        to_object_id: int,
+        to_object_id: [int | str],
         association_type_map: dict
     ):
         def replace_from_object_id(item, new_id, new_association_type):
@@ -759,9 +759,9 @@ class HubSpotService(BaseService):
     def copy_attachments_to_other_object(
         self,
         from_object_type: str,
-        from_object_id: int,
+        from_object_id: [int | str],
         to_object_type: str,
-        to_object_id: int,
+        to_object_id: [int | str],
         note_association_type: str
     ):
         def format_association(from_id, to_id, association_type):
@@ -802,9 +802,9 @@ class HubSpotService(BaseService):
     def create_association(
         self,
         from_object_type: str,
-        from_object_id: int,
+        from_object_id: [int | str],
         to_object_type: str,
-        to_object_id: int,
+        to_object_id: [int | str],
         association_type: str,
     ):
         self.hubspot_client.crm.objects.associations_api.create(
@@ -818,9 +818,9 @@ class HubSpotService(BaseService):
     def create_association_v4(
         self,
         from_object_type: str,
-        from_object_id: int,
+        from_object_id: [int | str],
         to_object_type: str,
-        to_object_id: int,
+        to_object_id: [int | str],
         association_category: str,
         association_type_id: int
     ):
@@ -953,7 +953,7 @@ class HubSpotService(BaseService):
         except HubSpotFileNotFoundException:
             return
 
-    def delete_attached_files(self, object_type: str, object_id: int, gdpr_delete: bool = False):
+    def delete_attached_files(self, object_type: str, object_id: [int | str], gdpr_delete: bool = False):
         associations_response = self.get_associations(
             from_object_type=object_type,
             from_object_id=object_id,

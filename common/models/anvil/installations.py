@@ -7,5 +7,5 @@ class InstallationRequest(BaseModel):
     connection_id: str
     user_id: str
     integration_name: str
-    installation_id: Optional[str] = None
+    installation_id: str
     inputs: dict

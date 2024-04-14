@@ -113,6 +113,14 @@ class AnvilService(BaseService):
             self.disconnect()
         return connection
 
+    def get_account_by_id(self, account_id: str, keep_alive: bool = True):
+        if not self.connected:
+            self.connect()
+        account = app_tables.accounts.get_by_id(account_id)
+        if not keep_alive:
+            self.disconnect()
+        return account
+
     def get_account_by_identifier(self, identifier: str, keep_alive: bool = True):
         if not self.connected:
             self.connect()
