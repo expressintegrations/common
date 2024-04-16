@@ -77,8 +77,9 @@ class StripeService(BaseService):
                 "integration_id": integration.name
             }
         )
-        integration['stripe_billing_portal_config_id'] = config['id']
-        return integration['stripe_billing_portal_config_id']
+        integration.stripe_billing_portal_config_id = config['id']
+        integration.save()
+        return integration.stripe_billing_portal_config_id
 
     def create_billing_session(self, customer_id: str, billing_portal_config_id: str):
         try:
