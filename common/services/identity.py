@@ -14,14 +14,17 @@ class IdentityService(BaseService):
     def hubspot_northtext(self, authorization: Authorization) -> Identity:
         return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
 
+    def northtext(self, authorization: Authorization) -> Identity:
+        return self.get_northtext_identity_from_token(api_key=authorization.api_key)
+
     def express_integrations(self, authorization: Authorization) -> Identity:
         return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
 
     def hubspot_intakeq(self, authorization: Authorization) -> Identity:
         return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
 
-    def northtext(self, authorization: Authorization) -> Identity:
-        return self.get_northtext_identity_from_token(api_key=authorization.api_key)
+    def intakeq(self, authorization: Authorization) -> Identity:
+        return self.get_intakeq_identity_from_token(api_key=authorization.api_key)
 
     @staticmethod
     def get_northtext_identity_from_token(api_key: str) -> Identity:
