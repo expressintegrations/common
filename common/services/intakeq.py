@@ -59,7 +59,7 @@ class IntakeQService(BaseService):
 
     def get_clients(
         self,
-        search: str = None,
+        search: [str | int] = None,
         page: int = None,
         include_profile: bool = None,
         date_created_start: datetime = None,
