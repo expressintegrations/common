@@ -61,6 +61,7 @@ class Client(BaseModel):
     unit_number: Optional[str] = None
     street_address: Optional[str] = None
     city: Optional[str] = None
+    state: Optional[str] = None
     state_short: Optional[str] = None
     country: Optional[str] = None
     postal_code: Optional[str] = None
