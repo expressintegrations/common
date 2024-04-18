@@ -1,7 +1,9 @@
 from common.models.firestore.connections import Authorization
+from common.models.intakeq.practitioners import Role
 from common.models.oauth.identity import Identity
 from common.services.base import BaseService
 from common.services.hubspot import HubSpotService
+from common.services.intakeq import IntakeQService
 from common.services.northtext import NorthTextService
 
 
@@ -12,11 +14,17 @@ class IdentityService(BaseService):
     def hubspot_northtext(self, authorization: Authorization) -> Identity:
         return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
 
+    def northtext(self, authorization: Authorization) -> Identity:
+        return self.get_northtext_identity_from_token(api_key=authorization.api_key)
+
     def express_integrations(self, authorization: Authorization) -> Identity:
         return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
 
-    def northtext(self, authorization: Authorization) -> Identity:
-        return self.get_northtext_identity_from_token(api_key=authorization.api_key)
+    def hubspot_intakeq(self, authorization: Authorization) -> Identity:
+        return self.get_hubspot_identity_from_token(access_token=authorization.access_token)
+
+    def intakeq(self, authorization: Authorization) -> Identity:
+        return self.get_intakeq_identity_from_token(api_key=authorization.api_key)
 
     @staticmethod
     def get_northtext_identity_from_token(api_key: str) -> Identity:
@@ -31,6 +39,21 @@ class IdentityService(BaseService):
             account_id=account_response.result.id,
             account_name=account_response.result.company
         )
+
+    @staticmethod
+    def get_intakeq_identity_from_token(api_key: str) -> Identity:
+        intakeq_service = IntakeQService(
+            api_key=api_key
+        )
+        practitioners = intakeq_service.get_practitioners()
+        for practitioner in practitioners:
+            if practitioner.role_name == Role.ADMINISTRATOR:
+                return Identity(
+                    email=practitioner.email,
+                    first_name=practitioner.first_name,
+                    last_name=practitioner.last_name,
+                    account_id=practitioner.id
+                )
 
     @staticmethod
     def get_hubspot_identity_from_token(access_token: str) -> Identity:

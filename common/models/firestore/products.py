@@ -2,6 +2,8 @@ from typing import Optional, List
 
 from firedantic import Model
 
+from common.models.firestore.prices import Price
+
 
 class Product(Model):
     __collection__ = 'products'
@@ -14,6 +16,7 @@ class Product(Model):
     allow_trial: Optional[bool] = False
     stripe_object: Optional[dict] = None
     feature_group_ids: Optional[List[str]] = None
+    prices: Optional[List[Price]] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """

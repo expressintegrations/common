@@ -15,7 +15,7 @@ class Account(Model):
     account_identifier: Optional[str] = None
     stripe_customer_id: Optional[str] = None
     hs_company_id: Optional[str] = None
-    created_at: Optional[datetime] = None
+    created_at: Optional[datetime] = datetime.now()
     active: Optional[bool] = None
     source: Optional[AccountSource] = None
 
