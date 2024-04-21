@@ -14,7 +14,7 @@ OIDC_ENDPOINT = 'https://accounts.google.com/.well-known/openid-configuration'
 CERTS = None
 
 
-@timed_lru_cache(seconds=3600)
+@timed_lru_cache(seconds=30)
 def get_google_certs():
     config = requests.get(OIDC_ENDPOINT).json()
     return requests.get(config['jwks_uri']).json()
