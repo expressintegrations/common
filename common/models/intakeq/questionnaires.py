@@ -89,6 +89,7 @@ class IntakeWebhook(BaseModel):
     client_id: int
     external_practice_id: Optional[str] = None
     external_client_id: Optional[str] = None
+    practice_id: Optional[str] = None
 
     class Config:
         populate_by_name = True
