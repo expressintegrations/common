@@ -336,7 +336,8 @@ class HubSpotService(BaseService):
         property_name: str,
         new_options: List[dict],
         option_value_key: str = 'value',
-        option_label_key: str = 'label'
+        option_label_key: str = 'label',
+        remove_options: List[str] = None
     ):
         def parse_option(index, option):
             return {
@@ -348,7 +349,15 @@ class HubSpotService(BaseService):
         prop = self.get_property(object_type=object_type, property_name=property_name).to_dict()
         new_option_map = {o[option_value_key]: parse_option(i, o) for i, o in enumerate(new_options)}
         for o in prop['options']:
-            if o['value'] and len(o['value']) > 0 and o['value'] not in new_option_map:
+            if (
+                o['value']
+                and len(o['value']) > 0
+                and o['value'] not in new_option_map
+                and (
+                    not remove_options
+                    or o['value'] not in remove_options
+                )
+            ):
                 new_option_map[o['value']] = o
         if not new_option_map:
             print(f"Unable to update property {object_type}.{property_name}. At least one option is required.")
