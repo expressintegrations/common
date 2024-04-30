@@ -38,7 +38,9 @@ def verify_google(
         CERTS = get_google_certs()
     public_keys = {}
     for jwk in CERTS['keys']:
-        kid = jwk['kid']
+        kid = jwk.get('kid')
+        if not kid:
+            return
         public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     kid = jwt.get_unverified_header(token)['kid']
     key = public_keys[kid]
