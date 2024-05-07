@@ -43,7 +43,9 @@ def verify_google(
             return
         public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
     kid = jwt.get_unverified_header(token)['kid']
-    key = public_keys[kid]
+    key = public_keys.get(kid)
+    if not key:
+        return
 
     try:
         payload = jwt.decode(token, key=key, algorithms=['RS256'], audience=metadata_service.public_url)
