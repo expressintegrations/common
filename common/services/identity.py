@@ -40,8 +40,8 @@ class IdentityService(BaseService):
             email=self_response.email,
             first_name=name_parts[0],
             last_name=' '.join(name_parts[1:]) if len(name_parts) > 1 else '',
-            user_id=self_response.id,
-            account_id=account_response.id,
+            user_id=str(self_response.id),
+            account_id=str(account_response.id),
             account_name=account_response.name
         )
 
