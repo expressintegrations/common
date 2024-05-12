@@ -4,11 +4,6 @@ from firedantic import Model
 from pydantic import BaseModel
 
 
-class DependentField(BaseModel):
-    label: str
-    value: str
-
-
 class FieldItem(BaseModel):
     key: str
     value: Any
@@ -18,7 +13,7 @@ class FieldInput(BaseModel):
     name: Optional[str] = None
     description: Optional[str] = None
     label: Optional[str] = None
-    dependent_field_values: Optional[Dict[str, List[DependentField]]] = None
+    dependent_field_values: Optional[Dict[str, List[FieldItem]]] = None
     dependent_on_field: Optional[str] = None
     dependent_on_field_value: Optional[Any] = None
     type: Optional[str] = None
