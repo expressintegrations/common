@@ -20,7 +20,7 @@ class Me(BaseModel):
     join_date: Optional[str] = None
     email: Optional[str] = None
     enabled: Optional[bool] = None
-    id: Optional[str] = None
+    id: Optional[int] = None
     is_admin: Optional[bool] = None
     is_guest: Optional[bool] = None
     is_pending: Optional[bool] = None
