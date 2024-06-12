@@ -4,6 +4,7 @@ from common.models.oauth.identity import Identity
 from common.services.base import BaseService
 from common.services.hubspot import HubSpotService
 from common.services.intakeq import IntakeQService
+from common.services.monday import MondayService
 from common.services.northtext import NorthTextService
 
 
@@ -25,6 +26,24 @@ class IdentityService(BaseService):
 
     def intakeq(self, authorization: Authorization) -> Identity:
         return self.get_intakeq_identity_from_token(api_key=authorization.api_key)
+
+    def monday_snowflake(self, authorization: Authorization) -> Identity:
+        return self.get_monday_snowflake_identity_from_token(access_token=authorization.access_token)
+
+    @staticmethod
+    def get_monday_snowflake_identity_from_token(access_token: str) -> Identity:
+        monday_service = MondayService(access_token=access_token)
+        account_response = monday_service.get_account()
+        self_response = monday_service.get_self()
+        name_parts = self_response.name.split(' ')
+        return Identity(
+            email=self_response.email,
+            first_name=name_parts[0],
+            last_name=' '.join(name_parts[1:]) if len(name_parts) > 1 else '',
+            user_id=str(self_response.id),
+            account_id=str(account_response.id),
+            account_name=account_response.name
+        )
 
     @staticmethod
     def get_northtext_identity_from_token(api_key: str) -> Identity:

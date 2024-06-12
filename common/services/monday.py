@@ -5,6 +5,9 @@ from datetime import datetime, timezone
 from monday import MondayClient
 
 from common.core.utils import is_json
+from common.models.monday.api.account import Account
+from common.models.monday.api.app_subscription_status import SubscriptionStatus
+from common.models.monday.api.me import Me
 from common.services.base import BaseService
 from common.services.constants import UNSUPPORTED_MONDAY_COLUMN_TYPES, ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
 
@@ -24,10 +27,10 @@ class MondayService(BaseService):
             ]
         )
 
-    def get_self(self):
-        return self.monday_client.me.get_details()['data']['me']
+    def get_self(self) -> Me:
+        return Me.model_validate(self.monday_client.me.get_details()['data']['me'])
 
-    def apps_monetization_supported(self):
+    def apps_monetization_supported(self) -> bool:
         query = '''
         query {
             apps_monetization_status {
@@ -40,7 +43,7 @@ class MondayService(BaseService):
             custom_query=query
         )['data']['apps_monetization_status']['is_supported']
 
-    def get_app_subscription(self):
+    def get_app_subscription(self) -> SubscriptionStatus:
         query = '''
         query {
             app_subscription {
@@ -55,20 +58,34 @@ class MondayService(BaseService):
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
-        return data['app_subscription'][0] if len(data['app_subscription']) > 0 else None
+        if len(data['app_subscription']) > 0:
+            return SubscriptionStatus.model_validate(data['app_subscription'][0])
 
-    def get_account(self):
+    def get_account(self) -> Account:
         query = '''
         query {
             account {
-                slug,
-                name
+                country_code,
+                id,
+                name,
+                plan {
+                    max_users,
+                    period,
+                    tier,
+                    version
+                },
+                products {
+                    id,
+                    kind
+                }
             }
         }
         '''
-        return self.monday_client.custom.execute_custom_query(
-            custom_query=query
-        )['data']['account']
+        return Account.model_validate(
+            self.monday_client.custom.execute_custom_query(
+                custom_query=query
+            )['data']['account']
+        )
 
     def get_active_board_ids(self):
         query = '''
