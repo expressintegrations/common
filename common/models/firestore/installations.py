@@ -31,6 +31,7 @@ class Installation(Model):
     back_to_url: Optional[str] = None
     step_completed: Optional[int] = 0
     final_output: Optional[List[Output]] = None
+    metadata: Optional[dict] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """
