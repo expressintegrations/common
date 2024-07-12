@@ -18,6 +18,7 @@ class Subscription(Model):
     cancel_at_period_end: Optional[bool] = False
     checkout_session_id: Optional[str] = None
     stripe_object: Optional[dict] = None
+    monday_object: Optional[dict] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = False, exclude_none: bool = False) -> None:
         """
