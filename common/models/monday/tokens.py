@@ -7,11 +7,13 @@ from pydantic.alias_generators import to_camel
 class AuthToken(BaseModel):
     account_id: int
     user_id: int
+    board_id: Optional[int] = None
     aud: str
     exp: int
     short_lived_token: str
     iat: int
     recipe_id: Optional[int] = None
+    integration_id: Optional[int] = None
     back_to_url: Optional[str] = None
 
     class Config:
