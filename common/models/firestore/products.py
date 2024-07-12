@@ -17,6 +17,7 @@ class Product(Model):
     stripe_object: Optional[dict] = None
     feature_group_ids: Optional[List[str]] = None
     prices: Optional[List[Price]] = None
+    monday_plan_id: Optional[str] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """
