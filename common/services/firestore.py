@@ -88,6 +88,15 @@ class FirestoreService(BaseService):
         return connection_model.find_one({'app_name': app_name, 'authorized_by_id': user_id})
 
     @staticmethod
+    def get_connection_by_authorized_user(
+        installation: Installation,
+        app_name: str,
+        authorized_by_id: str
+    ) -> Connection:
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({'app_name': app_name, 'authorized_by_id': authorized_by_id})
+
+    @staticmethod
     def get_connection_by_account_identifier(
             installation_id: str,
             app_name: str,
