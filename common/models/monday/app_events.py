@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 
 
 class EventType(str, Enum):
@@ -51,6 +51,10 @@ class AppEventData(BaseModel):
     timestamp: datetime
     subscription: Optional[Subscription] = None
     user_country: str
+
+    @field_serializer('timestamp')
+    def serialize_timestamp(self, timestamp: datetime, _info):
+        return timestamp.isoformat()
 
 
 class AppEvent(BaseModel):
