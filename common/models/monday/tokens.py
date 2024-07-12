@@ -11,7 +11,7 @@ class AuthToken(BaseModel):
     exp: int
     short_lived_token: str
     iat: int
-    recipe_id: Optional[str] = None
+    recipe_id: Optional[int] = None
     back_to_url: Optional[str] = None
 
     class Config:
