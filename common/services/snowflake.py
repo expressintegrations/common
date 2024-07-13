@@ -110,6 +110,8 @@ class SnowflakeService(BaseService):
         return Token.model_validate(r)
 
     def execute(self, query, keep_alive: bool = False):
+        if not self.connected:
+            self.connect()
         cs = self.ctx.cursor()
         try:
             cs.execute(query)
@@ -127,6 +129,8 @@ class SnowflakeService(BaseService):
                 self.close()
 
     def get_rows(self, query, keep_alive: bool = False):
+        if not self.connected:
+            self.connect()
         cs = self.ctx.cursor()
         try:
             cs.execute(query)
