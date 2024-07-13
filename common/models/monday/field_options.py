@@ -50,4 +50,4 @@ class OptionsRequest(BaseModel):
 
 
 class Payload(BaseModel):
-    payload: OptionsRequest
+    payload: Optional[OptionsRequest] = None
