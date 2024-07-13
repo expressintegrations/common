@@ -5,7 +5,7 @@ from typing import List
 import snowflake.connector
 from snowflake.connector.errors import ProgrammingError
 
-from common.models.oauth.tokens import Token
+from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
 
 URL_CLOUD_PLATFORMS = [
@@ -88,7 +88,7 @@ class SnowflakeService(BaseService):
             raise SnowflakeIntegrationException(str(e))
         self.connected = True
 
-    def refresh_snowflake_token(self) -> Token:
+    def refresh_snowflake_token(self) -> Authorization:
         url = f"https://{self.account_identifier}.snowflakecomputing.com/oauth/token-request"
         credentials = f"{self.client_id}:{self.client_secret}"
         headers = {
@@ -105,7 +105,7 @@ class SnowflakeService(BaseService):
         r = r.json()
         if 'error' in r:
             raise SnowflakeIntegrationException(f"Error: {r['error']}, Message: {r['message']}")
-        return Token.model_validate(r)
+        return Authorization.model_validate(r)
 
     def execute(self, query, keep_alive: bool = False):
         if not self.connected:
