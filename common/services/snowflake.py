@@ -89,7 +89,7 @@ class SnowflakeService(BaseService):
         self.connected = True
 
     def refresh_snowflake_token(self) -> Authorization:
-        url = f"https://{self.account_identifier}.snowflakecomputing.com/oauth/token-request"
+        url = f"https://{self.account_url}.snowflakecomputing.com/oauth/token-request"
         credentials = f"{self.client_id}:{self.client_secret}"
         headers = {
             'Authorization': f"Basic {base64.b64encode(credentials.encode('UTF-8')).decode('UTF-8')}",
