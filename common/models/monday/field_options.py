@@ -33,10 +33,10 @@ class Dependencies(BaseModel):
 
 class OptionsRequest(BaseModel):
     board_id: Optional[int] = None
-    automation_id: int
+    automation_id: Optional[int] = None
     dependency_data: Optional[Dependencies] = None
-    recipe_id: int
-    integration_id: int
+    recipe_id: Optional[int] = None
+    integration_id: Optional[int] = None
     page_request_data: Optional[Page] = None
 
     class Config:
