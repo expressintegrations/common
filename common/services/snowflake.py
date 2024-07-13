@@ -102,7 +102,8 @@ class SnowflakeService(BaseService):
         }
         import requests
         r = requests.post(url, data=data, headers=headers)
-        self.logger.log_text(f"Attempted reauthorization: {r.status_code} {r.text}")
+        if r.status_code >= 400:
+            raise Exception(f"Attempted reauthorization: {r.status_code} {r.text}")
         r = r.json()
         if 'error' in r:
             raise SnowflakeIntegrationException(f"Error: {r['error']}, Message: {r['message']}")
