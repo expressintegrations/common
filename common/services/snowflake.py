@@ -107,7 +107,9 @@ class SnowflakeService(BaseService):
         r = r.json()
         if 'error' in r:
             raise SnowflakeIntegrationException(f"Error: {r['error']}, Message: {r['message']}")
-        return Authorization.model_validate(r)
+        authorization = Authorization.model_validate(r)
+        self.access_token = authorization.access_token
+        return authorization
 
     def execute(self, query, keep_alive: bool = False):
         if not self.connected:
