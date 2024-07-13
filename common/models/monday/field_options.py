@@ -6,7 +6,7 @@ from pydantic.alias_generators import to_camel
 
 class FieldOption(BaseModel):
     title: str
-    value: str
+    value: Any
 
 
 class Page(BaseModel):
