@@ -17,9 +17,6 @@ URL_CLOUD_PLATFORMS = [
 ]
 
 
-REDIRECT_URI = f"https://app.expressintegrations.com/_/api/oauth/callback"
-
-
 class SnowflakeIntegrationException(Exception):
     def __init__(self, message):
         self.message = message
@@ -37,6 +34,7 @@ class SnowflakeService(BaseService):
         username: str,
         role: str,
         warehouse: str,
+        redirect_uri: str = None,
         access_token: str = None,
         client_id: str = None,
         client_secret: str = None,
@@ -47,7 +45,7 @@ class SnowflakeService(BaseService):
         super().__init__(log_name="services.snowflake", private_output=False)
         if paramstyle:
             snowflake.connector.paramstyle = paramstyle
-
+        self.redirect_uri = redirect_uri
         self.account_identifier = account_identifier
         self.account_url = account_identifier
         self.username = username
@@ -99,7 +97,7 @@ class SnowflakeService(BaseService):
         }
         data = {
             "grant_type": "refresh_token",
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": self.redirect_uri,
             "refresh_token": self.refresh_token
         }
         import requests
