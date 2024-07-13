@@ -23,16 +23,21 @@ class OptionsResponse(BaseModel):
         alias_generator = to_camel
 
 
-class DependencyValue(BaseModel):
+class Reference(BaseModel):
+    title: str
     value: Any
+    invalid: bool
 
 
 class Dependencies(BaseModel):
-    table: Optional[DependencyValue] = None
+    field_type_id: Optional[int] = None
+    table: Optional[Reference] = None
 
 
 class OptionsRequest(BaseModel):
     board_id: Optional[int] = None
+    table: Optional[Reference] = None
+    side: Optional[str] = None
     automation_id: Optional[int] = None
     dependency_data: Optional[Dependencies] = None
     recipe_id: Optional[int] = None
