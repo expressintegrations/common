@@ -10,7 +10,7 @@ class FieldOption(BaseModel):
 
 
 class Page(BaseModel):
-    page: int
+    page: Optional[int] = None
 
 
 class OptionsResponse(BaseModel):
