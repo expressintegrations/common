@@ -170,7 +170,7 @@ class MondayService(BaseService):
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
-        item = data['boards'][0]['items_page']['items'][0]
+        item = data['items'][0]
         column_values = self.parse_item_column_values(item)
 
         if return_type == 'list':
