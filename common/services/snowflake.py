@@ -5,7 +5,7 @@ from typing import List
 import snowflake.connector
 from snowflake.connector.errors import ProgrammingError
 
-from common.models.oauth.tokens import Token
+from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
 
 URL_CLOUD_PLATFORMS = [
@@ -15,9 +15,6 @@ URL_CLOUD_PLATFORMS = [
     'ap-southeast-1',
     'ap-southeast-2'
 ]
-
-
-REDIRECT_URI = f"https://app.expressintegrations.com/_/api/oauth/callback"
 
 
 class SnowflakeIntegrationException(Exception):
@@ -37,6 +34,7 @@ class SnowflakeService(BaseService):
         username: str,
         role: str,
         warehouse: str,
+        redirect_uri: str = None,
         access_token: str = None,
         client_id: str = None,
         client_secret: str = None,
@@ -47,7 +45,7 @@ class SnowflakeService(BaseService):
         super().__init__(log_name="services.snowflake", private_output=False)
         if paramstyle:
             snowflake.connector.paramstyle = paramstyle
-
+        self.redirect_uri = redirect_uri
         self.account_identifier = account_identifier
         self.account_url = account_identifier
         self.username = username
@@ -90,8 +88,8 @@ class SnowflakeService(BaseService):
             raise SnowflakeIntegrationException(str(e))
         self.connected = True
 
-    def refresh_snowflake_token(self) -> Token:
-        url = f"https://{self.account_identifier}.snowflakecomputing.com/oauth/token-request"
+    def refresh_snowflake_token(self) -> Authorization:
+        url = f"https://{self.account_url}.snowflakecomputing.com/oauth/token-request"
         credentials = f"{self.client_id}:{self.client_secret}"
         headers = {
             'Authorization': f"Basic {base64.b64encode(credentials.encode('UTF-8')).decode('UTF-8')}",
@@ -99,17 +97,23 @@ class SnowflakeService(BaseService):
         }
         data = {
             "grant_type": "refresh_token",
-            "redirect_uri": REDIRECT_URI,
+            "redirect_uri": self.redirect_uri,
             "refresh_token": self.refresh_token
         }
         import requests
         r = requests.post(url, data=data, headers=headers)
+        if r.status_code >= 400:
+            raise Exception(f"Attempted reauthorization: {r.status_code} {r.text}")
         r = r.json()
         if 'error' in r:
             raise SnowflakeIntegrationException(f"Error: {r['error']}, Message: {r['message']}")
-        return Token.model_validate(r)
+        authorization = Authorization.model_validate(r)
+        self.access_token = authorization.access_token
+        return authorization
 
     def execute(self, query, keep_alive: bool = False):
+        if not self.connected:
+            self.connect()
         cs = self.ctx.cursor()
         try:
             cs.execute(query)
@@ -127,6 +131,8 @@ class SnowflakeService(BaseService):
                 self.close()
 
     def get_rows(self, query, keep_alive: bool = False):
+        if not self.connected:
+            self.connect()
         cs = self.ctx.cursor()
         try:
             cs.execute(query)

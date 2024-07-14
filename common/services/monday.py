@@ -20,6 +20,11 @@ class MondayService(BaseService):
         self.monday_client = MondayClient(token=access_token)
         super().__init__(
             log_name="services.monday",
+            exclude_inputs=[
+                "parse_item_with_column_values",
+                "parse_value",
+                "parse_item_column_values"
+            ],
             exclude_outputs=[
                 "parse_item_with_column_values",
                 "parse_value",
@@ -123,7 +128,6 @@ class MondayService(BaseService):
 
     def get_board_columns(self, board_id):
         data = self.monday_client.boards.fetch_boards_by_id(board_ids=board_id)['data']
-        print(f"Get Boards Response: {data}")
         columns = [c for c in data['boards'][0]['columns'] if c['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES]
         columns.insert(0, {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id'})
         return columns
@@ -145,39 +149,33 @@ class MondayService(BaseService):
             )
         )
 
-    def get_item_with_column_values(self, board_id, item_id, return_type='list'):
-        query = '''
-        query {
-            boards(ids: %s) {
+    def get_item_with_column_values(self, item_id, return_type='list'):
+        query = f'''
+        query {{
+            items (ids: [{item_id}]) {{
+                group {{
+                    id
+                    title
+                }}
+                id
                 name
-                items_page {
-                    cursor
-                    items (ids: %s) {
-                        group {
-                            id
-                            title
-                        }
-                        id
-                        name
-                        column_values {
-                          id
-                          column {
-                            id
-                            title
-                          }
-                          text
-                          type
-                          value
-                        }
-                    }
-                }
-            }
-        }
-        ''' % board_id, item_id
+                column_values {{
+                  id
+                  column {{
+                    id
+                    title
+                  }}
+                  text
+                  type
+                  value
+                }}
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
-        item = data['boards'][0]['items_page']['items'][0]
+        item = data['items'][0]
         column_values = self.parse_item_column_values(item)
 
         if return_type == 'list':
@@ -189,62 +187,65 @@ class MondayService(BaseService):
 
     def get_items_with_column_values(self, board_id, limit: int = 100, cursor: str = None):
         if not cursor:
-            query = '''
-            query {
-                boards(ids: %s) {
+            query = f'''
+            query {{
+                boards(ids: {board_id}) {{
                     name
-                    items_page (limit: %s){
+                    items_page (limit: {limit}){{
                         cursor
-                        items {
-                            group {
+                        items {{
+                            group {{
                                 id
                                 title
-                            }
+                            }}
                             id
                             name
-                            column_values {
+                            column_values {{
                               id
-                              column {
+                              column {{
                                 id
                                 title
-                              }
+                              }}
                               text
                               type
                               value
-                            }
-                        }
-                    }
-                }
-            }
-            ''' % (board_id, limit)
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+            '''
             data = self.monday_client.custom.execute_custom_query(
                 custom_query=query
             )['data']['boards'][0]['items_page']
             items = data['items']
             cursor = data['cursor']
         else:
-            query = '''
-            query {
-                next_items_page (cursor: %s, limit: %s){
+            query = f'''
+            query {{
+                next_items_page (cursor: "{cursor}", limit: {limit}){{
                     cursor
-                    items {
-                        group {
+                    items {{
+                        group {{
                             id
                             title
-                        }
+                        }}
                         id
                         name
-                        column_values {
+                        column_values {{
                           id
-                          title
+                          column {{
+                            id
+                            title
+                          }}
                           text
                           type
                           value
-                        }
-                    }
-                }
-            }
-            ''' % (cursor, limit)
+                        }}
+                    }}
+                }}
+            }}
+            '''
             data = self.monday_client.custom.execute_custom_query(
                 custom_query=query
             )['data']['next_items_page']
@@ -313,14 +314,14 @@ class MondayService(BaseService):
             return column
         if is_json(column['value']):
             column['value'] = json.loads(column['value'])
-        if column['type'] in ['pulse-id', 'rating', 'autonumber']:
+        if column['type'] in ['item_id', 'rating', 'auto_number']:
             column['value'] = int(column['text'])
-        elif column['type'] == 'votes':
+        elif column['type'] == 'vote':
             if len(column['text']) > 0:
                 column['value'] = int(column['text'])
             else:
                 column['value'] = 0
-        elif column['type'] == 'boolean':
+        elif column['type'] == 'checkbox':
             column['value'] = str(column['value']['checked']) == 'true'
         elif column['type'] == 'date':
             if 'time' in column['value'] and column['value']['time']:
@@ -330,15 +331,15 @@ class MondayService(BaseService):
                 column['value'] = f"{dt.replace(tzinfo=timezone.utc):%Y-%m-%d %H:%M:%S %z}"
             else:
                 column['value'] = column['text']
-        elif column['type'] in ['dependency', 'board-relation', 'subtasks']:
+        elif column['type'] in ['dependency', 'board_relation', 'subtasks']:
             if column['value'] is not None:
                 column['value'] = [
-                    add_text(item, column['text'].split(', ')[index])
+                    add_text(item, column['text'].split(', ')[index]) if column['text'] else item
                     for index, item in enumerate(column['value']['linkedPulseIds'])
                 ] if 'linkedPulseIds' in column['value'] else []
-        elif column['type'] in ['dropdown', 'tag']:
+        elif column['type'] in ['dropdown', 'tags']:
             column['value'] = column['text'].split(', ') if column['text'] else column['text']
-        elif column['type'] == 'multiple-person':
+        elif column['type'] == 'people':
             if column['value'] is not None:
                 # column['value'] = column['value']['personsAndTeams']
                 column['value'] = [
@@ -349,12 +350,12 @@ class MondayService(BaseService):
             column['value'] = column['value']['files']
         elif column['type'] == 'link':
             column['value'] = column['value']['url']
-        elif column['type'] == 'numeric':
+        elif column['type'] == 'numbers':
             if '.' in column['text']:
                 column['value'] = float(column['text'])
             else:
                 column['value'] = int(column['text']) if column['text'] and column['text'] != '' else 0
-        elif column['type'] in ['pulse-log', 'pulse-updated']:
+        elif column['type'] in ['creation_log', 'last_updated']:
             format_data = '%Y-%m-%d %H:%M:%S %Z'
             dt = datetime.strptime(column['text'], format_data)
             column['value'] = f"{dt.replace(tzinfo=timezone.utc):%Y-%m-%d %H:%M:%S %z}"
@@ -375,7 +376,7 @@ class MondayService(BaseService):
         )
         column_values.insert(
             0,
-            {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id', 'value': int(item['id']), 'text': item['id']}
+            {'id': 'id', 'title': 'Item ID', 'type': 'item_id', 'value': int(item['id']), 'text': item['id']}
         )
         return column_values
 
@@ -402,11 +403,10 @@ class MondayService(BaseService):
         return data['teams']
 
     def get_board_activity(self, board_id, from_date, to_date, page, limit):
-        print(f"getting activity for {from_date} to {to_date}")
-        query = '''
-        query {
-            boards(ids: %s) {
-                activity_logs(from: "%s", to: "%s", page: %s, limit: %s) {
+        query = f'''
+        query {{
+            boards(ids: {board_id}) {{
+                activity_logs(from: "{from_date}", to: "{to_date}", page: {page}, limit: {limit}) {{
                     id,
                     entity,
                     event,
@@ -414,10 +414,10 @@ class MondayService(BaseService):
                     account_id
                     data,
                     created_at
-                }
-            }
-        }
-        ''' % (board_id, from_date, to_date, page, limit)
+                }}
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
@@ -441,18 +441,21 @@ class MondayService(BaseService):
         """
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
-        )['data']
-        return data['create_webhook']
+        )
+        if 'data' not in data:
+            raise Exception(f"Failed to create webhook: {data}")
+
+        return data['data']['create_webhook']
 
     def delete_webhook(self, webhook_id):
-        query = '''
-        mutation {
-            delete_webhook (id:%s) {
+        query = f'''
+        mutation {{
+            delete_webhook (id:{webhook_id}) {{
                 id
                 board_id
-            }
-        }
-        ''' % webhook_id
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']

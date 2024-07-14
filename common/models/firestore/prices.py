@@ -9,6 +9,7 @@ class Price(Model):
     product_id: Optional[str] = None
     stripe_id: Optional[str] = None
     stripe_object: Optional[dict] = None
+    monday_billing_period: Optional[str] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """

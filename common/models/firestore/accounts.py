@@ -18,6 +18,8 @@ class Account(Model):
     created_at: Optional[datetime] = datetime.now()
     active: Optional[bool] = None
     source: Optional[AccountSource] = None
+    monday_account_id: Optional[int] = None
+    monday_account_slug: Optional[str] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """

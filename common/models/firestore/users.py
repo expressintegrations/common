@@ -11,6 +11,7 @@ class User(Model):
     account_id: Optional[str] = None
     hs_contact_id: Optional[str] = None
     anvil_user_id: Optional[str] = None
+    monday_user_id: Optional[int] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
         """

@@ -7,9 +7,13 @@ from firedantic import Model
 class FeatureEvent(str, Enum):
     CHANGE_SPECIFIC_COLUMN_VALUE = 'change_specific_column_value'
     CHANGE_COLUMN_VALUE = 'change_column_value'
+    CHANGE_STATUS_COLUMN_VALUE = 'change_status_column_value'
     CREATE_ITEM = 'create_item'
-    ARCHIVE_ITEM = 'archive_item'
-    DELETE_ITEM = 'delete_item'
+    ARCHIVE_ITEM = 'item_archived'
+    DELETE_ITEM = 'item_deleted'
+    UNDELETE_ITEM = 'item_restored'
+    SNOWFLAKE_TO_MONDAY = 'run_sync_snowflake_to_monday_trigger'
+    SNOWFLAKE_TO_MONDAY_FILTERED = 'run_sync_snowflake_to_monday_filtered_trigger'
 
 
 class FeatureType(str, Enum):

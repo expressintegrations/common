@@ -31,6 +31,22 @@ class FirestoreService(BaseService):
             ]
         )
 
+    def get_job(self, monday_integration_id, function_name: str):
+        job_doc = self.firestore_client.collection('jobs').document(str(monday_integration_id))
+        if not job_doc.get().exists:
+            new_job = {
+                'completion_time': 0,
+                'function': function_name
+            }
+            job_doc.set(document_data=new_job)
+        return job_doc.get().to_dict()
+
+    def complete_job(self, monday_integration_id):
+        job_doc = self.firestore_client.collection('jobs').document(monday_integration_id)
+        data = job_doc.get().to_dict()
+        data['completion_time'] = datetime.utcnow().timestamp()
+        job_doc.set(document_data=data)
+
     @staticmethod
     def get_connection_by_app_name(
         installation_id: str,
@@ -54,6 +70,31 @@ class FirestoreService(BaseService):
         )
         connection_model: Type[Connection] = Connection.model_for(installation)
         return connection_model.find_one({'app_name': app_name})
+
+    @staticmethod
+    def get_connection_by_app_account_identifier_and_user_id(
+        integration_name: str,
+        account_identifier: [str | int],
+        app_name: str,
+        user_id: str
+    ) -> Connection:
+        installation = Installation.find_one(
+            {
+                'account_identifier': str(account_identifier),
+                'integration_name': integration_name
+            }
+        )
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({'app_name': app_name, 'authorized_by_id': user_id})
+
+    @staticmethod
+    def get_connection_by_authorized_user(
+        installation: Installation,
+        app_name: str,
+        authorized_by_id: str
+    ) -> Connection:
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({'app_name': app_name, 'authorized_by_id': authorized_by_id})
 
     @staticmethod
     def get_connection_by_account_identifier(

@@ -41,10 +41,10 @@ ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS = [
     'color',
     'date',
     'text',
-    'numeric',
+    'numbers',
     #   'formula', not valid for now
-    'long-text',
-    'pulse-id',
+    'long_text',
+    'item_id',
     #   'autonumber', not valid for now
     'email',
     'link'
@@ -52,8 +52,8 @@ ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS = [
 
 UNSUPPORTED_MONDAY_COLUMN_TYPES = [
     'formula',
-    'autonumber',
-    'columns-battery',
+    'auto_number',
+    'progress',
     'button',
 ]
 

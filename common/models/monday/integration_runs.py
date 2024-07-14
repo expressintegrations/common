@@ -6,13 +6,14 @@ from pydantic.alias_generators import to_camel
 
 
 class Reference(BaseModel):
-    value: Any
+    value: Optional[Any] = None
 
 
 class InboundFieldValues(BaseModel):
     board_id: Optional[int] = None
     table: Optional[Reference] = None
     table_column: Optional[Reference] = None
+    monday_column_id: Optional[Reference] = None
     boolean_column: Optional[Reference] = None
     boolean_value: Optional[Reference] = None
     schema: Optional[Reference] = None
@@ -21,6 +22,7 @@ class InboundFieldValues(BaseModel):
     error_column_id: Optional[str] = None
     row: Optional[dict] = None
     workspace: Optional[Reference] = None
+    item_values: Optional[dict] = None
 
     class Config:
         populate_by_name = True
