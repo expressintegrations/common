@@ -123,7 +123,6 @@ class MondayService(BaseService):
 
     def get_board_columns(self, board_id):
         data = self.monday_client.boards.fetch_boards_by_id(board_ids=board_id)['data']
-        print(f"Get Boards Response: {data}")
         columns = [c for c in data['boards'][0]['columns'] if c['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES]
         columns.insert(0, {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id'})
         return columns
@@ -146,34 +145,34 @@ class MondayService(BaseService):
         )
 
     def get_item_with_column_values(self, board_id, item_id, return_type='list'):
-        query = '''
-        query {
-            boards(ids: %s) {
+        query = f'''
+        query {{
+            boards(ids: {board_id}) {{
                 name
-                items_page {
+                items_page {{
                     cursor
-                    items (ids: %s) {
-                        group {
+                    items (ids: {item_id}) {{
+                        group {{
                             id
                             title
-                        }
+                        }}
                         id
                         name
-                        column_values {
+                        column_values {{
                           id
-                          column {
+                          column {{
                             id
                             title
-                          }
+                          }}
                           text
                           type
                           value
-                        }
-                    }
-                }
-            }
-        }
-        ''' % board_id, item_id
+                        }}
+                    }}
+                }}
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
@@ -189,62 +188,62 @@ class MondayService(BaseService):
 
     def get_items_with_column_values(self, board_id, limit: int = 100, cursor: str = None):
         if not cursor:
-            query = '''
-            query {
-                boards(ids: %s) {
+            query = f'''
+            query {{
+                boards(ids: {board_id}) {{
                     name
-                    items_page (limit: %s){
+                    items_page (limit: {limit}){{
                         cursor
-                        items {
-                            group {
+                        items {{
+                            group {{
                                 id
                                 title
-                            }
+                            }}
                             id
                             name
-                            column_values {
+                            column_values {{
                               id
-                              column {
+                              column {{
                                 id
                                 title
-                              }
+                              }}
                               text
                               type
                               value
-                            }
-                        }
-                    }
-                }
-            }
-            ''' % (board_id, limit)
+                            }}
+                        }}
+                    }}
+                }}
+            }}
+            '''
             data = self.monday_client.custom.execute_custom_query(
                 custom_query=query
             )['data']['boards'][0]['items_page']
             items = data['items']
             cursor = data['cursor']
         else:
-            query = '''
-            query {
-                next_items_page (cursor: %s, limit: %s){
+            query = f'''
+            query {{
+                next_items_page (cursor: {cursor}, limit: {limit}){{
                     cursor
-                    items {
-                        group {
+                    items {{
+                        group {{
                             id
                             title
-                        }
+                        }}
                         id
                         name
-                        column_values {
+                        column_values {{
                           id
                           title
                           text
                           type
                           value
-                        }
-                    }
-                }
-            }
-            ''' % (cursor, limit)
+                        }}
+                    }}
+                }}
+            }}
+            '''
             data = self.monday_client.custom.execute_custom_query(
                 custom_query=query
             )['data']['next_items_page']
@@ -402,11 +401,10 @@ class MondayService(BaseService):
         return data['teams']
 
     def get_board_activity(self, board_id, from_date, to_date, page, limit):
-        print(f"getting activity for {from_date} to {to_date}")
-        query = '''
-        query {
-            boards(ids: %s) {
-                activity_logs(from: "%s", to: "%s", page: %s, limit: %s) {
+        query = f'''
+        query {{
+            boards(ids: {board_id}) {{
+                activity_logs(from: "{from_date}", to: "{to_date}", page: {page}, limit: {limit}) {{
                     id,
                     entity,
                     event,
@@ -414,10 +412,10 @@ class MondayService(BaseService):
                     account_id
                     data,
                     created_at
-                }
-            }
-        }
-        ''' % (board_id, from_date, to_date, page, limit)
+                }}
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
@@ -448,14 +446,14 @@ class MondayService(BaseService):
         return data['data']['create_webhook']
 
     def delete_webhook(self, webhook_id):
-        query = '''
-        mutation {
-            delete_webhook (id:%s) {
+        query = f'''
+        mutation {{
+            delete_webhook (id:{webhook_id}) {{
                 id
                 board_id
-            }
-        }
-        ''' % webhook_id
+            }}
+        }}
+        '''
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
