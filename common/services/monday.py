@@ -326,7 +326,7 @@ class MondayService(BaseService):
         elif column['type'] in ['dependency', 'board_relation', 'subtasks']:
             if column['value'] is not None:
                 column['value'] = [
-                    add_text(item, column['text'].split(', ')[index])
+                    add_text(item, column['text'].split(', ')[index]) if column['text'] else item
                     for index, item in enumerate(column['value']['linkedPulseIds'])
                 ] if 'linkedPulseIds' in column['value'] else []
         elif column['type'] in ['dropdown', 'tags']:
