@@ -20,6 +20,11 @@ class MondayService(BaseService):
         self.monday_client = MondayClient(token=access_token)
         super().__init__(
             log_name="services.monday",
+            exclude_inputs=[
+                "parse_item_with_column_values",
+                "parse_value",
+                "parse_item_column_values"
+            ],
             exclude_outputs=[
                 "parse_item_with_column_values",
                 "parse_value",
@@ -218,7 +223,7 @@ class MondayService(BaseService):
         else:
             query = f'''
             query {{
-                next_items_page (cursor: {cursor}, limit: {limit}){{
+                next_items_page (cursor: "{cursor}", limit: {limit}){{
                     cursor
                     items {{
                         group {{
