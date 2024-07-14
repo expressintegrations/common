@@ -6,7 +6,7 @@ from pydantic.alias_generators import to_camel
 
 
 class Reference(BaseModel):
-    value: Any
+    value: Optional[Any] = None
 
 
 class InboundFieldValues(BaseModel):
