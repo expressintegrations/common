@@ -306,14 +306,14 @@ class MondayService(BaseService):
             return column
         if is_json(column['value']):
             column['value'] = json.loads(column['value'])
-        if column['type'] in ['pulse-id', 'rating', 'autonumber']:
+        if column['type'] in ['item_id', 'rating', 'auto_number']:
             column['value'] = int(column['text'])
-        elif column['type'] == 'votes':
+        elif column['type'] == 'vote':
             if len(column['text']) > 0:
                 column['value'] = int(column['text'])
             else:
                 column['value'] = 0
-        elif column['type'] == 'boolean':
+        elif column['type'] == 'checkbox':
             column['value'] = str(column['value']['checked']) == 'true'
         elif column['type'] == 'date':
             if 'time' in column['value'] and column['value']['time']:
@@ -323,15 +323,15 @@ class MondayService(BaseService):
                 column['value'] = f"{dt.replace(tzinfo=timezone.utc):%Y-%m-%d %H:%M:%S %z}"
             else:
                 column['value'] = column['text']
-        elif column['type'] in ['dependency', 'board-relation', 'subtasks']:
+        elif column['type'] in ['dependency', 'board_relation', 'subtasks']:
             if column['value'] is not None:
                 column['value'] = [
                     add_text(item, column['text'].split(', ')[index])
                     for index, item in enumerate(column['value']['linkedPulseIds'])
                 ] if 'linkedPulseIds' in column['value'] else []
-        elif column['type'] in ['dropdown', 'tag']:
+        elif column['type'] in ['dropdown', 'tags']:
             column['value'] = column['text'].split(', ') if column['text'] else column['text']
-        elif column['type'] == 'multiple-person':
+        elif column['type'] == 'people':
             if column['value'] is not None:
                 # column['value'] = column['value']['personsAndTeams']
                 column['value'] = [
@@ -342,12 +342,12 @@ class MondayService(BaseService):
             column['value'] = column['value']['files']
         elif column['type'] == 'link':
             column['value'] = column['value']['url']
-        elif column['type'] == 'numeric':
+        elif column['type'] == 'numbers':
             if '.' in column['text']:
                 column['value'] = float(column['text'])
             else:
                 column['value'] = int(column['text']) if column['text'] and column['text'] != '' else 0
-        elif column['type'] in ['pulse-log', 'pulse-updated']:
+        elif column['type'] in ['creation_log', 'last_updated']:
             format_data = '%Y-%m-%d %H:%M:%S %Z'
             dt = datetime.strptime(column['text'], format_data)
             column['value'] = f"{dt.replace(tzinfo=timezone.utc):%Y-%m-%d %H:%M:%S %z}"
@@ -368,7 +368,7 @@ class MondayService(BaseService):
         )
         column_values.insert(
             0,
-            {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id', 'value': int(item['id']), 'text': item['id']}
+            {'id': 'id', 'title': 'Item ID', 'type': 'item_id', 'value': int(item['id']), 'text': item['id']}
         )
         return column_values
 
