@@ -22,6 +22,7 @@ class InboundFieldValues(BaseModel):
     error_column_id: Optional[str] = None
     row: Optional[dict] = None
     workspace: Optional[Reference] = None
+    item_values: Optional[dict] = None
 
     class Config:
         populate_by_name = True
