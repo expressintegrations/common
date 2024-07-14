@@ -39,6 +39,7 @@ class InputFields(BaseModel):
     time: Optional[Reference] = None
     hours: Optional[Reference] = None
     table: Optional[Reference] = None
+    filter_column: Optional[Reference] = None
     scheduler_config: Optional[SchedulerConfig] = None
     status_column_value: Optional[StatusColumnValue] = None
 
