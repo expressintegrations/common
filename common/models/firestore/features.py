@@ -12,6 +12,8 @@ class FeatureEvent(str, Enum):
     ARCHIVE_ITEM = 'item_archived'
     DELETE_ITEM = 'item_deleted'
     UNDELETE_ITEM = 'item_restored'
+    SNOWFLAKE_TO_MONDAY = 'run_sync_snowflake_to_monday_trigger'
+    SNOWFLAKE_TO_MONDAY_FILTERED = 'run_sync_snowflake_to_monday_filtered_trigger'
 
 
 class FeatureType(str, Enum):
