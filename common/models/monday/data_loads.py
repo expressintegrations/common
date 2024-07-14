@@ -9,7 +9,7 @@ class LoadMondayDataRequest(BaseModel):
     table_name: str
     snowflake_key_column: str
     columns_with_snowflake_definitions: List[dict]
-    items: List[dict]
+    items: List[List[dict]]
 
 
 class LoadMondayBoardActivityRequest(BaseModel):
