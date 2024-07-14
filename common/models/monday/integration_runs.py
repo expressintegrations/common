@@ -13,6 +13,7 @@ class InboundFieldValues(BaseModel):
     board_id: Optional[int] = None
     table: Optional[Reference] = None
     table_column: Optional[Reference] = None
+    monday_column_id: Optional[Reference] = None
     boolean_column: Optional[Reference] = None
     boolean_value: Optional[Reference] = None
     schema: Optional[Reference] = None
