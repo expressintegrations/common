@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Any, Dict, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, field_serializer
 from pydantic.alias_generators import to_camel
 
 from common.models.monday.monday_integrations import InputFields
@@ -29,6 +29,10 @@ class MondayWebhookEvent(BaseModel):
     value: Optional[Any] = None
     previous_value: Optional[Any] = None
     changed_at: Optional[float] = None
+
+    @field_serializer('trigger_time')
+    def serialize_trigger_time(self, trigger_time: datetime, _info):
+        return trigger_time.isoformat()
 
     class Config:
         populate_by_name = True
