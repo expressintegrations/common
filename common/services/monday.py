@@ -234,7 +234,10 @@ class MondayService(BaseService):
                         name
                         column_values {{
                           id
-                          title
+                          column {{
+                            id
+                            title
+                          }}
                           text
                           type
                           value
