@@ -441,8 +441,11 @@ class MondayService(BaseService):
         """
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
-        )['data']
-        return data['create_webhook']
+        )
+        if 'data' not in data:
+            raise Exception(f"Failed to create webhook: {data}")
+
+        return data['data']['create_webhook']
 
     def delete_webhook(self, webhook_id):
         query = '''
