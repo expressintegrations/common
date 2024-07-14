@@ -144,31 +144,25 @@ class MondayService(BaseService):
             )
         )
 
-    def get_item_with_column_values(self, board_id, item_id, return_type='list'):
+    def get_item_with_column_values(self, item_id, return_type='list'):
         query = f'''
         query {{
-            boards(ids: {board_id}) {{
+            items (ids: [{item_id}]) {{
+                group {{
+                    id
+                    title
+                }}
+                id
                 name
-                items_page {{
-                    cursor
-                    items (ids: {item_id}) {{
-                        group {{
-                            id
-                            title
-                        }}
-                        id
-                        name
-                        column_values {{
-                          id
-                          column {{
-                            id
-                            title
-                          }}
-                          text
-                          type
-                          value
-                        }}
-                    }}
+                column_values {{
+                  id
+                  column {{
+                    id
+                    title
+                  }}
+                  text
+                  type
+                  value
                 }}
             }}
         }}
