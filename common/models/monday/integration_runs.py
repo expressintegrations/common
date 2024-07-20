@@ -42,4 +42,4 @@ class IntegrationRun(BaseModel):
 
 
 class ActionPayload(BaseModel):
-    payload: IntegrationRun
+    payload: Optional[IntegrationRun] = None
