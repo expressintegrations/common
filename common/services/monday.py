@@ -135,8 +135,28 @@ class MondayService(BaseService):
         return columns
 
     def get_workspaces(self) -> List[Workspace]:
-        data = self.monday_client.workspaces.get_workspaces()['data']
-        return [Workspace.model_validate(item['workspace']) for item in data['boards']]
+        query = '''
+            query {
+                workspaces {
+                    id
+                    name
+                    kind
+                    description
+                }
+            }
+        '''
+        data = self.monday_client.custom.execute_custom_query(
+            custom_query=query
+        )['data']
+        workspaces = [Workspace.model_validate(item) for item in data['workspaces']]
+        if 'Main workspace' not in [workspace.name for workspace in workspaces]:
+            workspaces[0] = Workspace.model_validate(
+                {
+                    'name': 'Main workspace',
+                    'kind': 'open'
+                }
+            )
+        return workspaces
 
     def get_monday_column_options_for_snowflake(self, board_id):
         monday_board_columns = self.get_board_columns(board_id)
