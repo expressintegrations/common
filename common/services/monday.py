@@ -8,6 +8,7 @@ from monday import MondayClient
 from common.core.utils import is_json
 from common.models.monday.api.account import Account
 from common.models.monday.api.app_subscription_status import SubscriptionStatus
+from common.models.monday.api.boards import SimpleBoard
 from common.models.monday.api.me import Me
 from common.models.monday.api.workspace import Workspace
 from common.services.base import BaseService
@@ -115,18 +116,27 @@ class MondayService(BaseService):
         }
         return self.monday_client.boards.fetch_boards(**clean_params)['data']['boards']
 
-    def get_board_ids(self, **params):
-        params['page'] = 1
-        clean_params = {
-            k: v if v not in [None, ''] else 'null' for k, v in params.items()
-        }
-        board_ids = self.monday_client.boards.fetch_board_ids(**clean_params)['data']['boards']
-        all_board_ids = list(board_ids)
-        while len(board_ids) == 100:
-            params['page'] += 1
-            board_ids = self.monday_client.boards.fetch_board_ids(**clean_params)['data']['boards']
-            all_board_ids += board_ids
-        return all_board_ids
+    def get_boards_in_workspace(self, workspace_id: int) -> List[SimpleBoard]:
+        page = 1
+        limit = 100
+        all_boards = []
+        while True:
+            query = f'''
+                query {{
+                    boards (page: {page}, limit: {limit}, workspace_ids: {workspace_id}) {{
+                        id
+                        name
+                    }}
+                }}
+            '''
+            boards = self.monday_client.custom.execute_custom_query(
+                custom_query=query
+            )['data']['boards']
+            all_boards += [SimpleBoard.model_validate(board) for board in boards]
+            page += 1
+            if len(boards) < 100:
+                break
+        return all_boards
 
     def get_board_columns(self, board_id):
         data = self.monday_client.boards.fetch_boards_by_id(board_ids=board_id)['data']
