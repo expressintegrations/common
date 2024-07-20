@@ -1,6 +1,7 @@
 import json
 import re
 from datetime import datetime, timezone
+from typing import List
 
 from monday import MondayClient
 
@@ -8,6 +9,7 @@ from common.core.utils import is_json
 from common.models.monday.api.account import Account
 from common.models.monday.api.app_subscription_status import SubscriptionStatus
 from common.models.monday.api.me import Me
+from common.models.monday.api.workspace import Workspace
 from common.services.base import BaseService
 from common.services.constants import UNSUPPORTED_MONDAY_COLUMN_TYPES, ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
 
@@ -132,9 +134,9 @@ class MondayService(BaseService):
         columns.insert(0, {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id'})
         return columns
 
-    def get_workspaces(self):
+    def get_workspaces(self) -> List[Workspace]:
         data = self.monday_client.workspaces.get_workspaces()['data']
-        return data['workspaces']
+        return [Workspace.model_validate(item['workspace']) for item in data['boards']]
 
     def get_monday_column_options_for_snowflake(self, board_id):
         monday_board_columns = self.get_board_columns(board_id)
