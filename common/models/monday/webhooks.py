@@ -61,7 +61,6 @@ class SubscriptionRequestPayload(BaseModel):
 
 
 class UnsubscribeRequest(BaseModel):
-    id: Optional[int] = None
     webhook_id: Optional[int] = None
 
     class Config:
