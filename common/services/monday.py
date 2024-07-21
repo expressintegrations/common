@@ -10,6 +10,7 @@ from common.models.monday.api.account import Account
 from common.models.monday.api.app_subscription_status import SubscriptionStatus
 from common.models.monday.api.boards import SimpleBoard
 from common.models.monday.api.me import Me
+from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
 from common.services.base import BaseService
 from common.services.constants import UNSUPPORTED_MONDAY_COLUMN_TYPES, ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
@@ -434,7 +435,14 @@ class MondayService(BaseService):
         )['data']
         return data['teams']
 
-    def get_board_activity(self, board_id, from_date, to_date, page, limit):
+    def get_board_activity(
+        self,
+        board_id: int,
+        from_date: str,
+        to_date: str,
+        page: int,
+        limit: int
+    ) -> List[dict]:
         query = f'''
         query {{
             boards(ids: {board_id}) {{
@@ -454,14 +462,14 @@ class MondayService(BaseService):
             custom_query=query
         )['data']
 
-        def parse_data(activity_log):
+        def parse_data(activity_log) -> dict:
             activity_log['data'] = json.loads(activity_log['data'])
             return activity_log
 
         activity_logs = [parse_data(a) for a in data['boards'][0]['activity_logs']]
         return activity_logs
 
-    def create_webhook(self, board_id, url, event, column_id=None):
+    def create_webhook(self, board_id, url, event, column_id=None) -> WebhookResponse:
         column_config = f', config: "{{\\"columnId\\": \\"{column_id}\\"}}"' if column_id else ''
         query = rf"""
         mutation {{
@@ -477,9 +485,9 @@ class MondayService(BaseService):
         if 'data' not in data:
             raise Exception(f"Failed to create webhook: {data}")
 
-        return data['data']['create_webhook']
+        return WebhookResponse.model_validate(data['data']['create_webhook'])
 
-    def delete_webhook(self, webhook_id):
+    def delete_webhook(self, webhook_id) -> WebhookResponse:
         query = f'''
         mutation {{
             delete_webhook (id:{webhook_id}) {{
@@ -491,4 +499,4 @@ class MondayService(BaseService):
         data = self.monday_client.custom.execute_custom_query(
             custom_query=query
         )['data']
-        return data['delete_webhook']
+        return WebhookResponse.model_validate(data['delete_webhook'])
