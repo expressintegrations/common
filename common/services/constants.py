@@ -45,6 +45,7 @@ ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS = [
     #   'formula', not valid for now
     'long_text',
     'item_id',
+    'pulse-id',
     #   'autonumber', not valid for now
     'email',
     'link'
