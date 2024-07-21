@@ -42,7 +42,7 @@ class FirestoreService(BaseService):
         return job_doc.get().to_dict()
 
     def complete_job(self, monday_integration_id):
-        job_doc = self.firestore_client.collection('jobs').document(monday_integration_id)
+        job_doc = self.firestore_client.collection('jobs').document(str(monday_integration_id))
         data = job_doc.get().to_dict()
         data['completion_time'] = datetime.utcnow().timestamp()
         job_doc.set(document_data=data)
