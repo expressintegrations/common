@@ -300,19 +300,17 @@ class MondayService(BaseService):
         )['data']['items_page_by_column_values']
         item_ids = [item['id'] for item in data['items']]
         cursor = data['cursor']
-        while len(data['items']) > 0:
-            query = '''
-            query {
-                next_items_page(
-                    cursor: "%s",
-                    limit: 100
-                ) {
-                    cursor
-                    items {
-                        id
-                    }
-                }
-            }''' % cursor
+        while cursor:
+            query = f'''
+                query {{
+                    next_items_page(cursor: "{cursor}", limit: 100) {{
+                        cursor
+                        items {{
+                            id
+                        }}
+                    }}
+                }}
+            '''
             data = self.monday_client.custom.execute_custom_query(
                 custom_query=query
             )['data']['next_items_page']
