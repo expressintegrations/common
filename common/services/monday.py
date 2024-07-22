@@ -324,10 +324,24 @@ class MondayService(BaseService):
         }
         return self.monday_client.items.change_item_value(board_id, item_id, column_id, column_value_json)['data']
 
-    def create_item(self, board_id, item_name, column_values):
+    def create_item(self, board_id: int, item_name: str, column_values: dict, group_id: str = None):
+        self.monday_client.groups.get_groups_by_board()
+        if not group_id:
+            query = f'''
+                query {{
+                    boards (ids: {board_id}){{
+                        top_group {{
+                            id
+                        }}
+                    }}
+                }}
+            '''
+            group_id = self.monday_client.custom.execute_custom_query(
+                custom_query=query
+            )['data']['boards'][0]['top_group']['id']
         self.monday_client.items.create_item(
             board_id=board_id,
-            group_id=None,
+            group_id=group_id,
             item_name=item_name,
             column_values=column_values,
             create_labels_if_missing=True
