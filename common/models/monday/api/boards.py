@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Any
 
 from pydantic import BaseModel
 
@@ -13,3 +13,4 @@ class BoardColumn(BaseModel):
     title: Optional[str] = None
     type: Optional[str] = None
     settings_str: Optional[str] = None
+    value: Optional[Any] = None
