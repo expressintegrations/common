@@ -46,12 +46,21 @@ class MondayWebhook(BaseModel):
     event: Optional[MondayWebhookEvent] = None
 
 
+class BlockMetadata(BaseModel):
+    should_calculate_dynamic_mapping: Optional[bool] = None
+
+    class Config:
+        populate_by_name = True
+        alias_generator = to_camel
+
+
 class SubscriptionRequest(BaseModel):
     integration_id: Optional[int] = None
     subscription_id: Optional[int] = None
     recipe_id: Optional[int] = None
     webhook_url: Optional[str] = None
     input_fields: Optional[InputFields] = None
+    block_metadata: Optional[BlockMetadata] = None
 
     class Config:
         populate_by_name = True

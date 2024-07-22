@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import List
+from typing import List, Any
 from typing import Optional
 
 from firedantic import Model
@@ -10,7 +10,7 @@ from pydantic.alias_generators import to_camel
 
 class Reference(BaseModel):
     title: Optional[str] = None
-    value: Optional[str] = None
+    value: Optional[Any] = None
     invalid: Optional[bool] = None
 
 
