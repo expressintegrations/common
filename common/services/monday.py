@@ -325,7 +325,6 @@ class MondayService(BaseService):
         return self.monday_client.items.change_item_value(board_id, item_id, column_id, column_value_json)['data']
 
     def create_item(self, board_id: int, item_name: str, column_values: dict, group_id: str = None):
-        self.monday_client.groups.get_groups_by_board()
         if not group_id:
             query = f'''
                 query {{
