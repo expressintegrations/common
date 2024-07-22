@@ -8,7 +8,7 @@ from monday import MondayClient
 from common.core.utils import is_json
 from common.models.monday.api.account import Account
 from common.models.monday.api.app_subscription_status import SubscriptionStatus
-from common.models.monday.api.boards import SimpleBoard
+from common.models.monday.api.boards import SimpleBoard, BoardColumn
 from common.models.monday.api.me import Me
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
@@ -139,10 +139,15 @@ class MondayService(BaseService):
                 break
         return all_boards
 
-    def get_board_columns(self, board_id):
+    def get_board_columns(self, board_id) -> List[BoardColumn]:
         data = self.monday_client.boards.fetch_boards_by_id(board_ids=board_id)['data']
-        columns = [c for c in data['boards'][0]['columns'] if c['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES]
-        columns.insert(0, {'id': 'id', 'title': 'Item ID', 'type': 'pulse-id'})
+        columns = [
+            BoardColumn.model_validate(c)
+            for c in data['boards'][0]['columns']
+            if c['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+        ]
+
+        columns.insert(0, BoardColumn(id='id', title='Item ID', type='pulse-id'))
         return columns
 
     def get_workspaces(self) -> List[Workspace]:
