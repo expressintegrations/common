@@ -13,6 +13,8 @@ class MondayWebhookEvent(BaseModel):
     board_id: Optional[int] = None
     pulse_id: Optional[int] = None
     pulse_name: Optional[str] = None
+    item_id: Optional[int] = None
+    item_name: Optional[str] = None
     group_id: Optional[str] = None
     group_name: Optional[str] = None
     group_color: Optional[str] = None
