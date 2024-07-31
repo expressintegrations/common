@@ -3,6 +3,7 @@ from typing import List, Optional
 from pydantic import BaseModel
 
 from common.models.monday.api.boards import BoardColumn
+from common.models.monday.api.items import ColumnValue
 
 
 class BoardColumnWithSnowflakeDefinition(BaseModel):
@@ -18,7 +19,7 @@ class LoadMondayDataRequest(BaseModel):
     table_name: str
     snowflake_key_column: str
     columns_with_snowflake_definitions: List[BoardColumnWithSnowflakeDefinition]
-    items: List[List[dict]]
+    items: List[List[ColumnValue]]
 
 
 class LoadMondayBoardActivityRequest(BaseModel):

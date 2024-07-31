@@ -1,7 +1,7 @@
 import json
 import re
 from datetime import datetime, timezone
-from typing import List
+from typing import List, Tuple, Union, Dict
 
 from monday import MondayClient
 
@@ -9,6 +9,7 @@ from common.core.utils import is_json
 from common.models.monday.api.account import Account
 from common.models.monday.api.app_subscription_status import SubscriptionStatus
 from common.models.monday.api.boards import SimpleBoard, BoardColumn
+from common.models.monday.api.items import SimpleColumn, ColumnValue
 from common.models.monday.api.me import Me
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
@@ -187,7 +188,11 @@ class MondayService(BaseService):
             )
         )
 
-    def get_item_with_column_values(self, item_id, return_type='list'):
+    def get_item_with_column_values(
+        self,
+        item_id,
+        return_type='list'
+    ) -> Union[List[ColumnValue] | Dict[str, ColumnValue]]:
         query = f'''
         query {{
             items (ids: [{item_id}]) {{
@@ -223,7 +228,12 @@ class MondayService(BaseService):
         else:
             return column_values
 
-    def get_items_with_column_values(self, board_id, limit: int = 100, cursor: str = None):
+    def get_items_with_column_values(
+        self,
+        board_id,
+        limit: int = 100,
+        cursor: str = None
+    ) -> Tuple[List[List[ColumnValue]], str]:
         if not cursor:
             query = f'''
             query {{
@@ -289,7 +299,8 @@ class MondayService(BaseService):
             )['data']['next_items_page']
             items = data['items']
             cursor = data['cursor']
-        return [self.parse_item_column_values(item) for item in items], cursor
+        items_with_column_values = [self.parse_item_column_values(item) for item in items]
+        return items_with_column_values, cursor
 
     def get_item_ids_by_column_value(self, board_id, column_id, column_value):
         data = self.monday_client.items.fetch_items_by_column_value(
@@ -415,17 +426,38 @@ class MondayService(BaseService):
             column['value'] = column['text']
         return column
 
-    def parse_item_column_values(self, item):
-        column_values = [self.parse_value(v) for v in item['column_values'] if
-                         v['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES]
+    def parse_item_column_values(self, item) -> List[ColumnValue]:
+        column_values = [
+            ColumnValue.model_validate(self.parse_value(v))
+            for v in item['column_values']
+            if v['type'] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+        ]
         # add the name and id columns, as those are not returned by default
         column_values.insert(
             0,
-            {'id': 'name', 'title': 'Item Name', 'type': 'name', 'value': item['name'], 'text': item['name']}
+            ColumnValue(
+                id='name',
+                column=SimpleColumn(
+                    id='name',
+                    title='Item Name'
+                ),
+                type='name',
+                value=item['name'],
+                text=item['name']
+            )
         )
         column_values.insert(
             0,
-            {'id': 'id', 'title': 'Item ID', 'type': 'item_id', 'value': int(item['id']), 'text': item['id']}
+            ColumnValue(
+                id='id',
+                column=SimpleColumn(
+                    id='id',
+                    title='Item ID'
+                ),
+                type='item_id',
+                value=int(item['id']),
+                text=item['id']
+            )
         )
         return column_values
 
