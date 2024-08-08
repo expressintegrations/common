@@ -8,6 +8,7 @@ from typing import Any, List, Union
 import hubspot.marketing.events.exceptions
 import requests
 from hubspot import HubSpot
+from hubspot.automation.actions import ApiException
 from hubspot.crm.associations import BatchInputPublicObjectId, BatchInputPublicAssociation
 from hubspot.crm.associations.v4 import PublicAssociationDefinitionCreateRequest
 from hubspot.crm.objects import (
@@ -1177,11 +1178,22 @@ class HubSpotService(BaseService):
         chunk_size = 100
         while callbacks:
             chunk, callbacks = callbacks[:chunk_size], callbacks[chunk_size:]
-            self.hubspot_client.automation.actions.callbacks_api.complete_batch(
-                batch_input_callback_completion_batch_request={
-                    'inputs': chunk
-                }
-            )
+            try:
+                self.hubspot_client.automation.actions.callbacks_api.complete_batch(
+                    batch_input_callback_completion_batch_request={
+                        'inputs': chunk
+                    }
+                )
+            except ApiException as e:
+                if 'CALLBACK_NOT_FOUND' not in str(e):
+                    raise e
+                chunk = [c for c in chunk if c['callbackId'] not in str(e)]
+                self.logger.log_text(f"Excluding invalid callbacks")
+                self.hubspot_client.automation.actions.callbacks_api.complete_batch(
+                    batch_input_callback_completion_batch_request={
+                        'inputs': chunk
+                    }
+                )
 
     def get_products(self, after: str = None, limit: int = 100):
         return self.hubspot_client.crm.products.basic_api.get_page(limit=limit, after=after)
