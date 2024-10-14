@@ -562,7 +562,10 @@ class FirestoreService(BaseService):
                 enrollment_doc = enrollments_collection.document(
                     enrollment_id
                 )
-                batch.update(enrollment_doc, merge_data)
+                if enrollment_doc.get().exists:
+                    batch.update(enrollment_doc, merge_data)
+                else:
+                    batch.set(enrollment_doc, merge_data)
             batch.commit()
 
     def get_bulk_enrollments(
