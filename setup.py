@@ -20,7 +20,7 @@ setup(
         'gunicorn==21.2.0',
         'hubspot-api-client==8.2.1',
         'monday==2.0.0rc3',
-        'pydantic==2.6.3',
+        'pydantic==2.9.2',
         'PyJWT==2.8.0',
         'pytz',
         'PyYAML==6.0.1',
