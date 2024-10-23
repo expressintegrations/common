@@ -21,19 +21,19 @@ class EventType(str, Enum):
 
 
 class VersionData(BaseModel):
-    major: int
-    minor: int
-    patch: int
-    type: str
+    major: Optional[int] = None
+    minor: Optional[int] = None
+    patch: Optional[int] = None
+    type: Optional[str] = None
 
 
 class Subscription(BaseModel):
-    plan_id: str
-    renewal_date: datetime
-    is_trial: bool
-    billing_period: str
-    days_left: int
-    pricing_version: int
+    plan_id: Optional[str] = None
+    renewal_date: Optional[datetime] = None
+    is_trial: Optional[bool] = None
+    billing_period: Optional[str] = None
+    days_left: Optional[int] = None
+    pricing_version: Optional[int] = None
 
 
 class AppEventData(BaseModel):
