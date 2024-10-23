@@ -37,20 +37,20 @@ class Subscription(BaseModel):
 
 
 class AppEventData(BaseModel):
-    app_id: int
-    user_id: int
-    user_email: str
-    user_name: str
-    user_cluster: str
-    account_tier: str
-    account_max_users: int
-    account_id: int
-    account_name: str
-    account_slug: str
+    app_id: Optional[int] = None
+    user_id: Optional[int] = None
+    user_email: Optional[str] = None
+    user_name: Optional[str] = None
+    user_cluster: Optional[str] = None
+    account_tier: Optional[str] = None
+    account_max_users: Optional[int] = None
+    account_id: Optional[int] = None
+    account_name: Optional[str] = None
+    account_slug: Optional[str] = None
     version_data: Optional[VersionData] = None
-    timestamp: datetime
+    timestamp: Optional[datetime] = None
     subscription: Optional[Subscription] = None
-    user_country: str
+    user_country: Optional[str] = None
 
     @field_serializer('timestamp')
     def serialize_timestamp(self, timestamp: datetime, _info):
