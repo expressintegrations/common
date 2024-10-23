@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from firedantic import Model
 
-from common.models.monday.api.app_subscription_status import SubscriptionStatus
+from common.models.monday.app_events import Subscription as MondaySubscription
 
 
 class Subscription(Model):
@@ -20,7 +20,7 @@ class Subscription(Model):
     cancel_at_period_end: Optional[bool] = False
     checkout_session_id: Optional[str] = None
     stripe_object: Optional[dict] = None
-    monday_object: Optional[SubscriptionStatus] = None
+    monday_object: Optional[MondaySubscription] = None
 
     def save(self, by_alias: bool = True, exclude_unset: bool = False, exclude_none: bool = False) -> None:
         """
