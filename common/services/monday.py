@@ -7,12 +7,12 @@ from monday import MondayClient
 
 from common.core.utils import is_json
 from common.models.monday.api.account import Account
-from common.models.monday.api.app_subscription_status import SubscriptionStatus
 from common.models.monday.api.boards import SimpleBoard, BoardColumn
 from common.models.monday.api.items import SimpleColumn, ColumnValue
 from common.models.monday.api.me import Me
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
+from common.models.monday.app_events import Subscription
 from common.services.base import BaseService
 from common.services.constants import UNSUPPORTED_MONDAY_COLUMN_TYPES, ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
 
@@ -53,7 +53,7 @@ class MondayService(BaseService):
             custom_query=query
         )['data']['apps_monetization_status']['is_supported']
 
-    def get_app_subscription(self) -> SubscriptionStatus:
+    def get_app_subscription(self) -> Subscription:
         query = '''
         query {
             app_subscription {
@@ -69,7 +69,7 @@ class MondayService(BaseService):
             custom_query=query
         )['data']
         if len(data['app_subscription']) > 0:
-            return SubscriptionStatus.model_validate(data['app_subscription'][0])
+            return Subscription.model_validate(data['app_subscription'][0])
 
     def get_account(self) -> Account:
         query = '''
