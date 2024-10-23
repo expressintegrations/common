@@ -35,6 +35,10 @@ class Subscription(BaseModel):
     days_left: Optional[int] = None
     pricing_version: Optional[int] = None
 
+    @field_serializer('renewal_date')
+    def serialize_renewal_date(self, dt: datetime, _info):
+        return dt.isoformat()
+
 
 class AppEventData(BaseModel):
     app_id: Optional[int] = None
@@ -53,8 +57,8 @@ class AppEventData(BaseModel):
     user_country: Optional[str] = None
 
     @field_serializer('timestamp')
-    def serialize_timestamp(self, timestamp: datetime, _info):
-        return timestamp.isoformat()
+    def serialize_timestamp(self, dt: datetime, _info):
+        return dt.isoformat()
 
 
 class AppEvent(BaseModel):
