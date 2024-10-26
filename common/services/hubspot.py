@@ -1,7 +1,7 @@
 import json
 import os
 import re
-from datetime import datetime
+from datetime import datetime, timezone
 from functools import cached_property
 from typing import Any, List, Union
 
@@ -622,7 +622,7 @@ class HubSpotService(BaseService):
         note_body = {
             "properties": {
                 "hs_attachment_ids": str(file_id),
-                "hs_timestamp": f"{datetime.utcnow().isoformat('T', 'milliseconds')}Z"
+                "hs_timestamp": int(datetime.now(timezone.utc).timestamp() * 1000)
             },
             "associations": [
                 {
@@ -1033,12 +1033,12 @@ class HubSpotService(BaseService):
     def upsert_contact(self, properties: dict = None):
         if properties is None:
             return
-        simple_public_object_input = SimplePublicObjectInput(
-            properties=properties
-        )
+        data = {
+            "properties": properties
+        }
         if 'email' not in properties:
             return self.hubspot_client.crm.contacts.basic_api.create(
-                simple_public_object_input=simple_public_object_input
+                simple_public_object_input_for_create=data
             )
 
         search_result = self.hubspot_client.crm.contacts.search_api.do_search(
@@ -1058,12 +1058,12 @@ class HubSpotService(BaseService):
         )
         if search_result.total == 0:
             self.hubspot_client.crm.contacts.basic_api.create(
-                simple_public_object_input=simple_public_object_input
+                simple_public_object_input_for_create=data
             )
         else:
             self.hubspot_client.crm.contacts.basic_api.update(
                 contact_id=search_result.results[0].id,
-                simple_public_object_input=simple_public_object_input
+                simple_public_object_input=data
             )
 
     def get_marketing_events_as_workflow_options(self, q: str = None):
