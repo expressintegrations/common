@@ -535,7 +535,9 @@ class FirestoreService(BaseService):
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
-            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours)
+            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours),
+            'task_id': '',
+            'uuid': ''
         }
         enrollment_doc.set(document_data=data)
         return data

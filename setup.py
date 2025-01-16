@@ -8,7 +8,7 @@ setup(
     install_requires=[
         'anvil-uplink==0.4.2',
         'cryptography==42.0.5',
-        'dependency-injector==4.41.0',
+        'dependency-injector==4.43.0',
         'fastapi==0.110.0',
         'firedantic==0.6.0',
         'google-cloud-firestore==2.15.0',
