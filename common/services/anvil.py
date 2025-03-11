@@ -1,5 +1,5 @@
 import base64
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any
 
 import anvil.server
@@ -148,7 +148,7 @@ class AnvilService(BaseService):
             account_identifier=str(account_id),
             name=name,
             active=True,
-            created_at=datetime.now(),
+            created_at=datetime.now(tz=timezone.utc),
             source={
                 'application': application_name
             }

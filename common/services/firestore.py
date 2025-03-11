@@ -44,7 +44,7 @@ class FirestoreService(BaseService):
     def complete_job(self, monday_integration_id):
         job_doc = self.firestore_client.collection('jobs').document(str(monday_integration_id))
         data = job_doc.get().to_dict()
-        data['completion_time'] = datetime.utcnow().timestamp()
+        data['completion_time'] = datetime.now(tz=timezone.utc).timestamp()
         job_doc.set(document_data=data)
 
     @staticmethod
@@ -82,7 +82,8 @@ class FirestoreService(BaseService):
         installation = Installation.find_one(
             {
                 'account_identifier': str(account_identifier),
-                'integration_name': integration_name
+                'integration_name': integration_name,
+                'active': True
             }
         )
         connection_model: Type[Connection] = Connection.model_for(installation)
@@ -148,7 +149,7 @@ class FirestoreService(BaseService):
 
         if not app_doc.get().exists:
             app_doc.set(
-                {'created': datetime.now()}
+                {'created': datetime.now(tz=timezone.utc)}
             )
         doc_data = dict() if not app_doc.get().exists else app_doc.get().to_dict()
         return doc_data.get(field_name)
@@ -161,7 +162,7 @@ class FirestoreService(BaseService):
         )
         if not app_doc.get().exists:
             app_doc.set(
-                {'created': datetime.now()}
+                {'created': datetime.now(tz=timezone.utc)}
             )
 
         account_doc = app_doc.collection(
@@ -171,7 +172,7 @@ class FirestoreService(BaseService):
         )
         if not account_doc.get().exists:
             account_doc.set(
-                {'created': datetime.now()}
+                {'created': datetime.now(tz=timezone.utc)}
             )
         return account_doc
 
@@ -191,7 +192,7 @@ class FirestoreService(BaseService):
 
     def set_account_connection(self, app_name: str, account_id: [int | str], token: dict):
         if 'expires_in' in token:
-            token['expires_at'] = int((datetime.now() + timedelta(seconds=token['expires_in'] - 60)).timestamp())
+            token['expires_at'] = int((datetime.now(tz=timezone.utc) + timedelta(seconds=token['expires_in'] - 60)).timestamp())
         connection_doc = self.get_account_doc(
             app_name=app_name,
             account_id=account_id
@@ -213,7 +214,7 @@ class FirestoreService(BaseService):
         )
         if not objects_doc.get().exists:
             objects_doc.set(
-                {'created': datetime.now()}
+                {'created': datetime.now(tz=timezone.utc)}
             )
         doc = objects_doc.collection(
             object_type
@@ -232,7 +233,7 @@ class FirestoreService(BaseService):
         )
         if not objects_doc.get().exists:
             objects_doc.set(
-                {'created': datetime.now()}
+                {'created': datetime.now(tz=timezone.utc)}
             )
         doc = objects_doc.collection(
             object_type
@@ -530,13 +531,13 @@ class FirestoreService(BaseService):
         doc_obj = doc.to_dict()
         current_callbacks = doc_obj['callback_ids'] if doc.exists else []
         data = {
-            'timestamp': datetime.now(),
+            'timestamp': datetime.now(tz=timezone.utc),
             'callback_ids': list(set(current_callbacks + [callback_id])) if callback_id else None,
             'request': data,
             'action_taken': doc_obj['action_taken'] if doc.exists else False,
             'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
             'completed': doc_obj['completed'] if doc.exists else False,
-            'expires': doc_obj['expires'] if doc.exists else datetime.now() + timedelta(hours=expiration_hours),
+            'expires': doc_obj['expires'] if doc.exists else datetime.now(tz=timezone.utc) + timedelta(hours=expiration_hours),
             'task_id': '',
             'uuid': ''
         }
