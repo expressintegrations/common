@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
 
 from firedantic import Model
@@ -24,7 +24,7 @@ class Installation(Model):
     active: Optional[bool] = False
     installation_in_progress: Optional[bool] = False
     installed_at: Optional[datetime] = None
-    created_at: Optional[datetime] = datetime.now()
+    created_at: Optional[datetime] = datetime.now(tz=timezone.utc)
     uninstalled_at: Optional[datetime] = None
     uninstallation_in_progress: Optional[bool] = False
     activated_at: Optional[datetime] = None

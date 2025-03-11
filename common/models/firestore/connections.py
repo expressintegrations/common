@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
@@ -34,7 +34,7 @@ class Authorization(BaseModel):
     expires_in: Optional[int] = 0
     refresh_token: Optional[str] = None
     token_type: Optional[str] = None
-    expires_at: Optional[int] = int(datetime.now().timestamp()) + expires_in
+    expires_at: Optional[int] = int(datetime.now(tz=timezone.utc).timestamp()) + expires_in
     id_token: Optional[str] = None
 
     # HubSpot
@@ -50,7 +50,7 @@ class Connection(SubModel):
     connected: Optional[bool] = False
     connected_at: Optional[datetime] = None
     connection_error: Optional[str] = None
-    created_at: Optional[datetime] = datetime.now()
+    created_at: Optional[datetime] = datetime.now(tz=timezone.utc)
     ever_connected: Optional[bool] = False
 
     class Collection(SubCollection):

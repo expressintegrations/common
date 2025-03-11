@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel
@@ -11,7 +11,7 @@ class Token(BaseModel):
     token_type: Optional[str] = None
     id_token: Optional[str] = None
     private_token: Optional[str] = None
-    expires_at: int = int(datetime.now().timestamp()) + expires_in
+    expires_at: int = int(datetime.now(tz=timezone.utc).timestamp()) + expires_in
 
 
 class AccountToken(BaseModel):

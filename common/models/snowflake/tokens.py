@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel
@@ -9,7 +9,7 @@ class Token(BaseModel):
     expires_in: int = 0
     refresh_token: Optional[str] = None
     token_type: Optional[str] = None
-    expires_at: int = int(datetime.now().timestamp()) + expires_in
+    expires_at: int = int(datetime.now(tz=timezone.utc).timestamp()) + expires_in
     username: Optional[str] = None
 
 

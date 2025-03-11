@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from pydantic import BaseModel, field_serializer
@@ -23,7 +23,7 @@ class MarketingEvent(BaseModel):
 
     @field_serializer('custom_properties')
     def serialize_custom_properties(self, data: dict, _info):
-        now = int(datetime.now().timestamp() * 1000)
+        now = int(datetime.now(tz=timezone.utc).timestamp() * 1000)
         return [
             {
                 "name": k,
