@@ -65,7 +65,8 @@ class FirestoreService(BaseService):
         installation = Installation.find_one(
             {
                 'account_identifier': str(account_identifier),
-                'integration_name': integration_name
+                'integration_name': integration_name,
+                'active': True
             }
         )
         connection_model: Type[Connection] = Connection.model_for(installation)
