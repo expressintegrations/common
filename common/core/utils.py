@@ -59,7 +59,7 @@ def format_sf(text, suffix=None, safe=False):
     if has_special_chars:
         text = re.sub(r'[^0-9a-zA-Z]+', '_', text) if safe else f"\"{text}\""
     else:
-        text = re.sub(r'[\W_]+', '_', text)
+        text = re.sub(r'\W+', '_', text)
     if text[0].isdigit():
         text = f"n_{text}"
     if suffix:
