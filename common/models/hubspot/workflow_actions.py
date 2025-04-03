@@ -99,6 +99,37 @@ class ActionObject(BaseModel):
         alias_generator = to_camel
 
 
+class FileType(str, Enum):
+    AUDIO = "AUDIO"
+    DOCUMENT = "DOCUMENT"
+    IMAGE = "IMG"
+    VIDEO = "MOVIE"
+
+
+class FileSource(str, Enum):
+    CALL = "CALL"
+    CONVERSATION_SESSION = "CONVERSATION_SESSION"
+    EMAIL = "EMAIL"
+    LINKEDIN_MESSAGE = "LINKEDIN_MESSAGE"
+    MANUAL_UPLOAD = "MANUAL_UPLOAD"
+    MEETING = "MEETING"
+    NOTE = "NOTE"
+    SMS = "SMS"
+    TASK = "TASK"
+    WHATS_APP = "WHATS_APP"
+
+
+class FileAccess(str, Enum):
+    PUBLIC_INDEXABLE = "PUBLIC_INDEXABLE"
+    PUBLIC_NOT_INDEXABLE = "PUBLIC_NOT_INDEXABLE"
+    PRIVATE = "PRIVATE"
+
+
+class FileDeletionType(str, Enum):
+    DELETE = "delete"
+    GDPR_DELETE = "gdpr_delete"
+
+
 class Operator(str, Enum):
     EQUALS = "equals"
     NOT_EQUALS = "not_equals"
@@ -149,7 +180,7 @@ class ErrorCode(str, Enum):
 
 
 class ActionOutputFields(BaseModel):
-    error_code: Optional[ErrorCode] = Field(default=None, alias='errorCode')
+    error_code: Optional[ErrorCode] = Field(default=None, alias="errorCode")
     hs_execution_state: ExecutionState
     hs_expiration_duration: Optional[str] = None
     attempted_correction: Optional[str] = None
@@ -169,13 +200,13 @@ class WorkflowActionOutput(BaseModel):
 
 class WorkflowActionCallback(BaseModel):
     output_fields: ActionOutputFields
-    callback_id: str = Field(default=None, alias='callbackId')
+    callback_id: str = Field(default=None, alias="callbackId")
 
     class Config:
         populate_by_name = True
 
 
-class HubSpotWorkflowActionCallbackBatchModel(BaseModel):
+class WorkflowActionCallbackBatch(BaseModel):
     inputs: List[WorkflowActionCallback]
 
     class Config:

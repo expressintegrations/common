@@ -11,6 +11,8 @@ from google.cloud import logging as cloud_logging
 from google.cloud.logging_v2 import Client
 from google.cloud.logging_v2.logger import Logger as CloudLogger
 
+from common.logging.context import LoggingContext
+
 
 class Severity(str, Enum):
     """Severity levels for logging with corresponding Python logging levels."""
@@ -79,6 +81,8 @@ class Logger:
             logging_client: Optional preconfigured logging client for GCP
             labels: Optional labels to add to all log entries
         """
+        if not log_name:
+            raise ValueError("Log name cannot be empty")
         self._log_level = log_level
         self._logging_client = logging_client
         self._use_cloud = str(use_cloud).lower() == "true"
@@ -155,6 +159,13 @@ class Logger:
             payload = {"message": message}
 
         final_labels = self._labels | (labels or {})
+        correlation_id = LoggingContext.get_correlation_id()
+        if correlation_id:
+            final_labels["correlation_id"] = correlation_id
+
+        context_labels = LoggingContext.get_labels()
+        if context_labels:
+            final_labels.update(context_labels)
 
         return payload, final_labels
 
@@ -182,6 +193,15 @@ class Logger:
         labels: dict[str, str] | None = None,
     ) -> None:
         """Log structured data with optional severity and labels."""
+        # Default to INFO if no severity provided
+        severity_to_use = severity or Severity.DEFAULT
+
+        # Get the numeric level from the configured log_level string
+        configured_level = getattr(python_logging, self._log_level)
+
+        # Check if this severity should be logged based on the configured level
+        if severity_to_use.python_level < configured_level:
+            return  # Skip logging if below threshold
         prepared_payload, final_labels = self._prepare_payload(payload, labels)
 
         if isinstance(self._logger, CloudLogger):
@@ -195,10 +215,13 @@ class Logger:
     def log_text(
         self,
         message: str,
+        *args: Any,
         severity: Severity | None = None,
         labels: dict[str, str] | None = None,
     ) -> None:
         """Log a text message with metadata."""
+        if args:
+            message = message % args
         self.log_struct({"message": message}, severity=severity, labels=labels)
 
     def log_exception(
@@ -225,20 +248,85 @@ class Logger:
         self.log_struct(payload, severity=Severity.ERROR, labels=labels)
 
     # Convenience methods for different severity levels
-    def log_debug(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.DEBUG, labels=labels)
+    def log_debug(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.DEBUG, labels=labels)
 
-    def log_info(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.INFO, labels=labels)
+    debug = log_debug
 
-    def log_warning(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.WARNING, labels=labels)
+    def log_info(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.INFO, labels=labels)
 
-    def log_error(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.ERROR, labels=labels)
+    info = log_info
 
-    def log_alert(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.ALERT, labels=labels)
+    def log_warning(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.WARNING, labels=labels)
 
-    def log_critical(self, message: str, labels: dict[str, str] | None = None) -> None:
-        self.log_text(message, severity=Severity.CRITICAL, labels=labels)
+    warning = log_warning
+
+    def log_error(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.ERROR, labels=labels)
+
+    error = log_error
+
+    def log_alert(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.ALERT, labels=labels)
+
+    alert = log_alert
+
+    def log_critical(
+        self, message: str, *args: Any, labels: dict[str, str] | None = None
+    ) -> None:
+        self.log_text(message, *args, severity=Severity.CRITICAL, labels=labels)
+
+    critical = log_critical
+
+    def isEnabledFor(self, level: int) -> bool:
+        """Check if the given logging level is enabled.
+
+        This method is required for compatibility with Zeep's logging.
+
+        Args:
+            level: Python logging level to check
+
+        Returns:
+            True if the level is enabled, False otherwise
+        """
+        try:
+            # Get our logger's level as a Python logging level
+            logger_level_str = self._log_level
+            logger_level = getattr(
+                python_logging, logger_level_str, python_logging.INFO
+            )
+
+            # Compare the levels directly
+            return level >= logger_level
+        except (AttributeError, ValueError, TypeError) as e:
+            # Log the error and default to enabling the log
+            self.log_error(f"Error checking log level: {e}")
+            return True
+
+    def getEffectiveLevel(self) -> int:
+        """Get the effective logging level as a Python logging level.
+
+        This method is required for compatibility with Zeep's logging.
+
+        Returns:
+            The effective Python logging level
+        """
+        logger_level_str = self._log_level
+        try:
+            return getattr(python_logging, logger_level_str, python_logging.INFO)
+        except (AttributeError, ValueError) as e:
+            # Log the error and default to INFO
+            self.log_error(f"Error getting effective log level: {e}")
+            return python_logging.INFO
