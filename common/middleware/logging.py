@@ -9,7 +9,7 @@ from starlette.types import Message
 class LoggingMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
-        log_name = 'middleware'
+        log_name = "middleware"
         logging_client = logging.Client()
         self.logger = logging_client.logger(log_name)
 
@@ -34,10 +34,7 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "headers": str(request.headers),
             "payload": body[:1200] if body else None,
         }
-        self.logger.log_text(
-            f"Request: {request_details}",
-            severity='INFO'
-        )
+        self.logger.log_text(f"Request: {request_details}", severity="INFO")
         start_time = time.time()
         response = await call_next(request)
         process_time = (time.time() - start_time) * 1000
@@ -50,8 +47,5 @@ class LoggingMiddleware(BaseHTTPMiddleware):
             "code": response.status_code,
             "elapsed_time": f"{formatted_process_time}ms",
         }
-        self.logger.log_text(
-            f"Response: {response_details}",
-            severity='INFO'
-        )
+        self.logger.log_text(f"Response: {response_details}", severity="INFO")
         return response

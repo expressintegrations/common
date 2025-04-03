@@ -15,102 +15,93 @@ from common.services.base import BaseService
 
 
 class FirestoreService(BaseService):
-    def __init__(
-        self,
-        firestore_client: firestore.Client
-    ) -> None:
+    def __init__(self, firestore_client: firestore.Client) -> None:
         self.firestore_client = firestore_client
         configure(self.firestore_client)
         super().__init__(
-            log_name='firestore.service',
-            exclude_inputs=[
-                'set_account_connection'
-            ],
-            exclude_outputs=[
-                'get_account_connection'
-            ]
+            log_name="firestore.service",
+            exclude_inputs=["set_account_connection"],
+            exclude_outputs=["get_account_connection"],
         )
 
     def get_job(self, monday_integration_id, function_name: str):
-        job_doc = self.firestore_client.collection('jobs').document(str(monday_integration_id))
+        job_doc = self.firestore_client.collection("jobs").document(
+            str(monday_integration_id)
+        )
         if not job_doc.get().exists:
-            new_job = {
-                'completion_time': 0,
-                'function': function_name
-            }
+            new_job = {"completion_time": 0, "function": function_name}
             job_doc.set(document_data=new_job)
         return job_doc.get().to_dict()
 
     def complete_job(self, monday_integration_id):
-        job_doc = self.firestore_client.collection('jobs').document(str(monday_integration_id))
+        job_doc = self.firestore_client.collection("jobs").document(
+            str(monday_integration_id)
+        )
         data = job_doc.get().to_dict()
-        data['completion_time'] = datetime.now(tz=timezone.utc).timestamp()
+        data["completion_time"] = datetime.now(tz=timezone.utc).timestamp()
         job_doc.set(document_data=data)
 
     @staticmethod
-    def get_connection_by_app_name(
-        installation_id: str,
-        app_name: str
-    ) -> Connection:
+    def get_connection_by_app_name(installation_id: str, app_name: str) -> Connection:
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({'app_name': app_name})
+        return connection_model.find_one({"app_name": app_name})
 
     @staticmethod
     def get_connection_by_app_account_identifier(
-        integration_name: str,
-        account_identifier: [str | int],
-        app_name: str
+        integration_name: str, account_identifier: int | str, app_name: str
     ) -> Connection:
         installation = Installation.find_one(
             {
-                'account_identifier': str(account_identifier),
-                'integration_name': integration_name,
-                'active': True
+                "account_identifier": str(account_identifier),
+                "integration_name": integration_name,
+                "active": True,
             }
         )
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({'app_name': app_name})
+        return connection_model.find_one({"app_name": app_name})
 
     @staticmethod
     def get_connection_by_app_account_identifier_and_user_id(
         integration_name: str,
-        account_identifier: [str | int],
+        account_identifier: int | str,
         app_name: str,
-        user_id: str
+        user_id: str,
     ) -> Connection:
         installation = Installation.find_one(
             {
-                'account_identifier': str(account_identifier),
-                'integration_name': integration_name,
-                'active': True
+                "account_identifier": str(account_identifier),
+                "integration_name": integration_name,
+                "active": True,
             }
         )
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({'app_name': app_name, 'authorized_by_id': user_id})
+        return connection_model.find_one(
+            {"app_name": app_name, "authorized_by_id": user_id}
+        )
 
     @staticmethod
     def get_connection_by_authorized_user(
-        installation: Installation,
-        app_name: str,
-        authorized_by_id: str
+        installation: Installation, app_name: str, authorized_by_id: str
     ) -> Connection:
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({'app_name': app_name, 'authorized_by_id': authorized_by_id})
+        return connection_model.find_one(
+            {"app_name": app_name, "authorized_by_id": authorized_by_id}
+        )
 
     @staticmethod
     def get_connection_by_account_identifier(
-            installation_id: str,
-            app_name: str,
-            account_identifier: [str | int]
+        installation_id: str, app_name: str, account_identifier: int | str
     ) -> Connection:
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({'app_name': app_name, 'account_identifier': account_identifier})
+        return connection_model.find_one(
+            {"app_name": app_name, "account_identifier": account_identifier}
+        )
 
     @staticmethod
     def create_connection(installation_id: str, connection: Connection) -> Connection:
-        Connection.__collection__ = f'installations/{installation_id}/connections'
+        Connection.__collection__ = f"installations/{installation_id}/connections"
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
         new_connection = connection_model(**connection.model_dump(exclude_unset=True))
@@ -118,10 +109,7 @@ class FirestoreService(BaseService):
         return new_connection
 
     @staticmethod
-    def get_connection_by_id(
-        installation_id: str,
-        connection_id: str
-    ) -> Connection:
+    def get_connection_by_id(installation_id: str, connection_id: str) -> Connection:
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
 
@@ -132,159 +120,135 @@ class FirestoreService(BaseService):
         return connection
 
     @staticmethod
-    def get_connections_for_installation(
-        installation_id: str
-    ) -> List[Connection]:
+    def get_connections_for_installation(installation_id: str) -> List[Connection]:
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
         return connection_model.find()
 
     def get_app_docs(self):
-        return self.firestore_client.collection('apps').list_documents()
+        return self.firestore_client.collection("apps").list_documents()
 
     def get_app_doc_field(self, app_name: str, field_name: str) -> Any:
-        app_doc = self.firestore_client.collection('apps').document(
-            app_name
-        )
+        app_doc = self.firestore_client.collection("apps").document(app_name)
 
         if not app_doc.get().exists:
-            app_doc.set(
-                {'created': datetime.now(tz=timezone.utc)}
-            )
+            app_doc.set({"created": datetime.now(tz=timezone.utc)})
         doc_data = dict() if not app_doc.get().exists else app_doc.get().to_dict()
         return doc_data.get(field_name)
 
-    def get_account_doc(self, app_name: str, account_id: [int | str]):
-        app_doc = self.firestore_client.collection(
-            'apps'
-        ).document(
-            app_name
-        )
+    def get_account_doc(self, app_name: str, account_id: int | str):
+        app_doc = self.firestore_client.collection("apps").document(app_name)
         if not app_doc.get().exists:
-            app_doc.set(
-                {'created': datetime.now(tz=timezone.utc)}
-            )
+            app_doc.set({"created": datetime.now(tz=timezone.utc)})
 
-        account_doc = app_doc.collection(
-            'accounts'
-        ).document(
-            str(account_id)
-        )
+        account_doc = app_doc.collection("accounts").document(str(account_id))
         if not account_doc.get().exists:
-            account_doc.set(
-                {'created': datetime.now(tz=timezone.utc)}
-            )
+            account_doc.set({"created": datetime.now(tz=timezone.utc)})
         return account_doc
 
     @timed_lru_cache(seconds=180)
-    def get_account_connection(self, app_name: str, account_id: [int | str]) -> Token:
-        connection_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'settings'
-        ).document(
-            'connection'
-        ).get()
+    def get_account_connection(self, app_name: str, account_id: int | str) -> Token:
+        connection_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("settings")
+            .document("connection")
+            .get()
+        )
         if not connection_doc.exists:
-            raise ConnectionNotFoundException(message=f"{app_name} connection for account id {account_id} not found.")
+            raise ConnectionNotFoundException(
+                message=f"{app_name} connection for account id {account_id} not found."
+            )
         return Token(**connection_doc.to_dict())
 
-    def set_account_connection(self, app_name: str, account_id: [int | str], token: dict):
-        if 'expires_in' in token:
-            token['expires_at'] = int((datetime.now(tz=timezone.utc) + timedelta(seconds=token['expires_in'] - 60)).timestamp())
-        connection_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'settings'
-        ).document(
-            'connection'
+    def set_account_connection(self, app_name: str, account_id: int | str, token: dict):
+        if "expires_in" in token:
+            token["expires_at"] = int(
+                (
+                    datetime.now(tz=timezone.utc)
+                    + timedelta(seconds=token["expires_in"] - 60)
+                ).timestamp()
+            )
+        connection_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("settings")
+            .document("connection")
         )
-        connection_doc.update(token) if connection_doc.get().exists else connection_doc.set(document_data=token)
+        connection_doc.update(
+            token
+        ) if connection_doc.get().exists else connection_doc.set(document_data=token)
 
     def get_object_schema(self, app_name: str, account_id: Any, object_type: str):
-        objects_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'settings'
-        ).document(
-            'objects'
+        objects_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("settings")
+            .document("objects")
         )
         if not objects_doc.get().exists:
-            objects_doc.set(
-                {'created': datetime.now(tz=timezone.utc)}
-            )
-        doc = objects_doc.collection(
-            object_type
-        ).document('schema')
-        object_schema = dict() if not doc.get().exists else ObjectSchema(**doc.get().to_dict())
+            objects_doc.set({"created": datetime.now(tz=timezone.utc)})
+        doc = objects_doc.collection(object_type).document("schema")
+        object_schema = (
+            dict() if not doc.get().exists else ObjectSchema(**doc.get().to_dict())
+        )
         return object_schema
 
-    def set_object_schema(self, app_name: str, account_id: str, object_type: str, object_schema: ObjectSchema):
-        objects_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'settings'
-        ).document(
-            'objects'
+    def set_object_schema(
+        self,
+        app_name: str,
+        account_id: str,
+        object_type: str,
+        object_schema: ObjectSchema,
+    ):
+        objects_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("settings")
+            .document("objects")
         )
         if not objects_doc.get().exists:
-            objects_doc.set(
-                {'created': datetime.now(tz=timezone.utc)}
-            )
-        doc = objects_doc.collection(
-            object_type
-        ).document('schema')
+            objects_doc.set({"created": datetime.now(tz=timezone.utc)})
+        doc = objects_doc.collection(object_type).document("schema")
         doc_data = dict() if not doc.get().exists else doc.get().to_dict()
         doc.set(document_data=doc_data | object_schema.to_dict())
 
     def get_app_account_ids(self, app_name: str):
-        collection = self.firestore_client.collection('apps').document(
-            document_id=app_name
-        ).collection('accounts')
+        collection = (
+            self.firestore_client.collection("apps")
+            .document(document_id=app_name)
+            .collection("accounts")
+        )
 
         return [account_doc.id for account_doc in collection.stream()]
 
     def get_app_account_field(self, app_name: str, account_id: Any, field_name: str):
-        doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=str(account_id)
-        )
+        doc = self.get_account_doc(app_name=app_name, account_id=str(account_id))
         doc_data = dict() if not doc.get().exists else doc.get().to_dict()
         return doc_data.get(field_name)
 
-    def set_app_account_field(self, app_name: str, account_id: Any, field_name: str, value: Any = None):
-        doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        )
+    def set_app_account_field(
+        self, app_name: str, account_id: Any, field_name: str, value: Any = None
+    ):
+        doc = self.get_account_doc(app_name=app_name, account_id=account_id)
         doc_data = dict() if not doc.get().exists else doc.get().to_dict()
         doc_data[field_name] = value
         return doc.set(document_data=doc_data)
 
-    def get_app_account_usage_doc(self, app_name: str, account_id: Any, usage_doc_id: str):
-        doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=str(account_id)
-        ).collection(
-            'usage'
-        ).document(
-            usage_doc_id
+    def get_app_account_usage_doc(
+        self, app_name: str, account_id: Any, usage_doc_id: str
+    ):
+        doc = (
+            self.get_account_doc(app_name=app_name, account_id=str(account_id))
+            .collection("usage")
+            .document(usage_doc_id)
         )
         doc_data = dict() if not doc.get().exists else doc.get().to_dict()
         return doc_data
 
-    def set_app_account_usage_doc(self, app_name: str, account_id: Any, usage_doc_id: str, doc_data: dict):
-        doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'usage'
-        ).document(
-            usage_doc_id
+    def set_app_account_usage_doc(
+        self, app_name: str, account_id: Any, usage_doc_id: str, doc_data: dict
+    ):
+        doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("usage")
+            .document(usage_doc_id)
         )
         return doc.set(document_data=doc_data)
 
@@ -293,71 +257,63 @@ class FirestoreService(BaseService):
         app_name: str,
         account_id: Any,
         usage_doc_id: str,
-        records_processed: int = 0
+        records_processed: int = 0,
     ):
-        usage_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=str(account_id)
-        ).collection(
-            'usage'
-        ).document(
-            usage_doc_id
+        usage_doc = (
+            self.get_account_doc(app_name=app_name, account_id=str(account_id))
+            .collection("usage")
+            .document(usage_doc_id)
         )
         if not usage_doc.get().exists:
-            usage_data = {
-                'quantity': 1,
-                'records_processed': records_processed
-            }
+            usage_data = {"quantity": 1, "records_processed": records_processed}
         else:
             usage_data = usage_doc.get().to_dict()
-            usage_data['quantity'] += 1
-            usage_data['records_processed'] += records_processed
+            usage_data["quantity"] += 1
+            usage_data["records_processed"] += records_processed
         usage_doc.set(document_data=usage_data)
 
     def get_object_properties(
         self,
         app_name: str,
-        account_id: [int | str],
+        account_id: int | str,
         object_type: str,
         field_type: str = None,
-        referenced_object_type: str = None
+        referenced_object_type: str = None,
     ):
-        field_type = field_type if field_type else ''
-        referenced_object_type = referenced_object_type if referenced_object_type else ''
-        properties_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'object_properties'
-        ).document(
-            f"{object_type}-{field_type}{referenced_object_type}"
-        ).get()
-        return properties_doc.to_dict() if properties_doc.exists else WorkflowOptionsResponse(options=[]).model_dump()
+        field_type = field_type if field_type else ""
+        referenced_object_type = (
+            referenced_object_type if referenced_object_type else ""
+        )
+        properties_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("object_properties")
+            .document(f"{object_type}-{field_type}{referenced_object_type}")
+            .get()
+        )
+        return (
+            properties_doc.to_dict()
+            if properties_doc.exists
+            else WorkflowOptionsResponse(options=[]).model_dump()
+        )
 
     def set_object_properties(
         self,
         app_name: str,
-        account_id: [int | str],
+        account_id: int | str,
         object_type: str,
         object_properties: dict,
-        field_type: str = '',
-        referenced_object_type: str = ''
+        field_type: str = "",
+        referenced_object_type: str = "",
     ):
-        objects_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        ).collection(
-            'object_properties'
-        ).document(
-            f"{object_type}-{field_type}{referenced_object_type}"
+        objects_doc = (
+            self.get_account_doc(app_name=app_name, account_id=account_id)
+            .collection("object_properties")
+            .document(f"{object_type}-{field_type}{referenced_object_type}")
         )
         objects_doc.set(document_data=object_properties)
 
     def delete_account(self, app_name: str, account_id: Any):
-        account_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=account_id
-        )
+        account_doc = self.get_account_doc(app_name=app_name, account_id=account_id)
         self.firestore_client.recursive_delete(reference=account_doc)
 
     def delete_doc(self, doc_ref: Any):
@@ -413,35 +369,35 @@ class FirestoreService(BaseService):
         object_type: str,
         object_id: int,
         callback_id: str,
-        expiration_hours: int = 0
+        expiration_hours: int = 0,
     ):
-        enrollment_key = f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
-        enrollment_doc = self.firestore_client.collection(
-            'enrollments'
-        ).document(
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc = self.firestore_client.collection("enrollments").document(
             enrollment_key
         )
         now = datetime.now(tz=timezone.utc)
         doc = enrollment_doc.get()
         doc_obj = doc.to_dict()
-        if not doc.exists or doc_obj['expires'] < now:
+        if not doc.exists or doc_obj["expires"] < now:
             enrollment_doc.set(
                 {
-                    'expires': now + timedelta(hours=expiration_hours),
-                    'callback_ids': [callback_id],
-                    'completed': False
+                    "expires": now + timedelta(hours=expiration_hours),
+                    "callback_ids": [callback_id],
+                    "completed": False,
                 }
             )
             return False
         enrollment_doc.set(
             {
-                'expires': doc_obj['expires'],
-                'callback_ids': list(set(doc_obj['callback_ids'] + [callback_id])),
-                'completed': doc_obj['completed']
+                "expires": doc_obj["expires"],
+                "callback_ids": list(set(doc_obj["callback_ids"] + [callback_id])),
+                "completed": doc_obj["completed"],
             }
         )
 
-        if not doc_obj['completed']:
+        if not doc_obj["completed"]:
             return True
         return False
 
@@ -452,19 +408,19 @@ class FirestoreService(BaseService):
         action_id: int,
         object_type: str,
         object_id: int,
-        callback_id: str
+        callback_id: str,
     ):
-        enrollment_key = f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
-        enrollment_doc = self.firestore_client.collection(
-            'enrollments'
-        ).document(
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc = self.firestore_client.collection("enrollments").document(
             enrollment_key
         )
         if not enrollment_doc.get().exists:
             return [callback_id]
         doc = enrollment_doc.get()
         doc_obj = doc.to_dict()
-        callback_ids = list(set(doc_obj['callback_ids'] + [callback_id]))
+        callback_ids = list(set(doc_obj["callback_ids"] + [callback_id]))
         return callback_ids
 
     def complete_enrollment(
@@ -473,21 +429,21 @@ class FirestoreService(BaseService):
         workflow_id: int,
         action_id: int,
         object_type: str,
-        object_id: int
+        object_id: int,
     ):
-        enrollment_key = f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
-        enrollment_doc = self.firestore_client.collection(
-            'enrollments'
-        ).document(
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc = self.firestore_client.collection("enrollments").document(
             enrollment_key
         )
         doc = enrollment_doc.get()
         doc_obj = doc.to_dict()
         enrollment_doc.set(
             {
-                'expires': enrollment_doc.get().to_dict()['expires'],
-                'callback_ids': doc_obj['callback_ids'],
-                'completed': True
+                "expires": enrollment_doc.get().to_dict()["expires"],
+                "callback_ids": doc_obj["callback_ids"],
+                "completed": True,
             }
         )
 
@@ -497,16 +453,16 @@ class FirestoreService(BaseService):
         workflow_id: int,
         action_id: int,
         object_type: str,
-        object_id: int
+        object_id: int,
     ):
-        enrollment_key = f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
-        enrollment_doc = self.firestore_client.collection(
-            'enrollments'
-        ).document(
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc = self.firestore_client.collection("enrollments").document(
             enrollment_key
         )
         data = enrollment_doc.get().to_dict()
-        data['callback_ids'] = []
+        data["callback_ids"] = []
         enrollment_doc.set(data)
 
     def enroll_object_for_bulk_processing(
@@ -517,29 +473,30 @@ class FirestoreService(BaseService):
         portal_id: Any,
         data: dict,
         callback_id: str = None,
-        expiration_hours: int = 0
+        expiration_hours: int = 0,
     ):
-        enrollment_doc = self.get_account_doc(
-            app_name=app_name,
-            account_id=portal_id
-        ).collection(
-            f'{function_name}_enrollments'
-        ).document(
-            enrollment_key
+        enrollment_doc = (
+            self.get_account_doc(app_name=app_name, account_id=portal_id)
+            .collection(f"{function_name}_enrollments")
+            .document(enrollment_key)
         )
         doc = enrollment_doc.get()
         doc_obj = doc.to_dict()
-        current_callbacks = doc_obj['callback_ids'] if doc.exists else []
+        current_callbacks = doc_obj["callback_ids"] if doc.exists else []
         data = {
-            'timestamp': datetime.now(tz=timezone.utc),
-            'callback_ids': list(set(current_callbacks + [callback_id])) if callback_id else None,
-            'request': data,
-            'action_taken': doc_obj['action_taken'] if doc.exists else False,
-            'usage_reported': doc_obj['usage_reported'] if doc.exists else False,
-            'completed': doc_obj['completed'] if doc.exists else False,
-            'expires': doc_obj['expires'] if doc.exists else datetime.now(tz=timezone.utc) + timedelta(hours=expiration_hours),
-            'task_id': '',
-            'uuid': ''
+            "timestamp": datetime.now(tz=timezone.utc),
+            "callback_ids": list(set(current_callbacks + [callback_id]))
+            if callback_id
+            else None,
+            "request": data,
+            "action_taken": doc_obj["action_taken"] if doc.exists else False,
+            "usage_reported": doc_obj["usage_reported"] if doc.exists else False,
+            "completed": doc_obj["completed"] if doc.exists else False,
+            "expires": doc_obj["expires"]
+            if doc.exists
+            else datetime.now(tz=timezone.utc) + timedelta(hours=expiration_hours),
+            "task_id": "",
+            "uuid": "",
         }
         enrollment_doc.set(document_data=data)
         return data
@@ -550,44 +507,32 @@ class FirestoreService(BaseService):
         portal_id: Any,
         function_name: str,
         enrollment_ids: List[str],
-        merge_data: dict
+        merge_data: dict,
     ):
         chunk_size = 500
         enrollments_collection = self.get_account_doc(
-            app_name=app_name,
-            account_id=portal_id
-        ).collection(
-            f'{function_name}_enrollments'
-        )
+            app_name=app_name, account_id=portal_id
+        ).collection(f"{function_name}_enrollments")
         while enrollment_ids:
             batch = self.firestore_client.batch()
-            chunk, enrollment_ids = enrollment_ids[:chunk_size], enrollment_ids[chunk_size:]
+            chunk, enrollment_ids = (
+                enrollment_ids[:chunk_size],
+                enrollment_ids[chunk_size:],
+            )
             for enrollment_id in chunk:
-                enrollment_doc = enrollments_collection.document(
-                    enrollment_id
-                )
+                enrollment_doc = enrollments_collection.document(enrollment_id)
                 if enrollment_doc.get().exists:
                     batch.update(enrollment_doc, merge_data)
                 else:
                     batch.set(enrollment_doc, merge_data)
             batch.commit()
 
-    def get_bulk_enrollments(
-        self,
-        app_name: str,
-        portal_id: Any,
-        function_name: str
-    ):
-        return self.get_account_doc(
-            app_name=app_name,
-            account_id=portal_id
-        ).collection(
-            f'{function_name}_enrollments'
-        ).where(
-            filter=FieldFilter(
-                field_path="completed",
-                op_string="==",
-                value=False
+    def get_bulk_enrollments(self, app_name: str, portal_id: Any, function_name: str):
+        return (
+            self.get_account_doc(app_name=app_name, account_id=portal_id)
+            .collection(f"{function_name}_enrollments")
+            .where(
+                filter=FieldFilter(field_path="completed", op_string="==", value=False)
             )
         )
 
@@ -597,18 +542,15 @@ class FirestoreService(BaseService):
         portal_id: Any,
         function_name: str,
         field_name: str,
-        field_value: Any
+        field_value: Any,
     ):
-        return self.get_account_doc(
-            app_name=app_name,
-            account_id=portal_id
-        ).collection(
-            f'{function_name}_enrollments'
-        ).where(
-            filter=FieldFilter(
-                field_path=field_name,
-                op_string="==",
-                value=field_value
+        return (
+            self.get_account_doc(app_name=app_name, account_id=portal_id)
+            .collection(f"{function_name}_enrollments")
+            .where(
+                filter=FieldFilter(
+                    field_path=field_name, op_string="==", value=field_value
+                )
             )
         )
 
