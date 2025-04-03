@@ -124,7 +124,7 @@ class SnowflakeService(BaseService):
             print(f"failed query:\n{query}")
             if "does not exist" in str(e) or "Insufficient privileges" in str(e):
                 raise SnowflakeIntegrationException(
-                    f"{str(e)}\nPlease ensure the role {self.connection['settings']['snowflake_role']} "
+                    f"{str(e)}\nPlease ensure the role {self.role} "
                     f"is granted access to this table"
                 )
             raise e
@@ -144,7 +144,7 @@ class SnowflakeService(BaseService):
             if "does not exist" in str(e) or "Insufficient privileges" in str(e):
                 print(f"Query could not be performed: {query}")
                 raise SnowflakeIntegrationException(
-                    f"{str(e)}\nPlease ensure the {self.connection['settings']['snowflake_role']} "
+                    f"{str(e)}\nPlease ensure the {self.role} "
                     f"is granted access to this table "
                 )
             raise e
@@ -182,15 +182,17 @@ class SnowflakeService(BaseService):
                 query=f"show columns in table {database}.{schema}.{table};",
                 keep_alive=True,
             )
-            column_definitions_map = {c["name"].lower(): c for c in column_definitions}
-            new_column_names = [c["name"].lower() for c in column_definitions]
+            column_definitions_map = {
+                str(c["name"]).lower(): c for c in column_definitions
+            }
+            new_column_names = [str(c["name"]).lower() for c in column_definitions]
 
             # Step 1 - Add missing columns by name
-            current_column_names = [c[2].lower() for c in current_columns]
+            current_column_names = [str(c[2]).lower() for c in current_columns]
             columns_to_add = [
-                f"{c['name'].lower()} {c['type']}"
+                f"{str(c['name']).lower()} {c['type']}"
                 for c in column_definitions
-                if c["name"].lower() not in current_column_names
+                if str(c["name"]).lower() not in current_column_names
             ]
             for c in columns_to_add:
                 self.execute(
@@ -200,9 +202,9 @@ class SnowflakeService(BaseService):
 
             # Step 2 - Drop deleted columns
             columns_to_drop = [
-                c[2].lower()
+                str(c[2]).lower()
                 for c in current_columns
-                if c[2].lower() not in new_column_names
+                if str(c[2].lower()) not in new_column_names
             ]
             for c in columns_to_drop:
                 self.execute(
@@ -212,7 +214,7 @@ class SnowflakeService(BaseService):
 
             # Step 3 - Drop and re-add columns that changed type
             columns_to_drop_retype = [
-                c[2].lower()
+                str(c[2]).lower()
                 for c in current_columns
                 if json.loads(c[3])["type"]
                 != column_definitions_map[c[2].lower()]["type"]
@@ -226,7 +228,7 @@ class SnowflakeService(BaseService):
             columns_to_add_retype = [
                 f"{c['name']} {c['type']}"
                 for c in column_definitions
-                if c["name"].lower() in columns_to_drop_retype
+                if str(c["name"]).lower() in columns_to_drop_retype
             ]
             for c in columns_to_add_retype:
                 self.execute(
