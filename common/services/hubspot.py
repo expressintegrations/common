@@ -1315,10 +1315,12 @@ class HubSpotService(BaseService):
     def upsert_contact(self, properties: dict = None):
         if properties is None:
             return
-        simple_public_object_input = SimplePublicObjectInput(properties=properties)
+        simple_public_object_input = {
+            "properties": properties,
+        }
         if "email" not in properties:
             return self.hubspot_client.crm.contacts.basic_api.create(
-                simple_public_object_input=simple_public_object_input
+                simple_public_object_input_for_create=simple_public_object_input
             )
 
         search_result = self.hubspot_client.crm.contacts.search_api.do_search(
@@ -1338,7 +1340,7 @@ class HubSpotService(BaseService):
         )
         if search_result.total == 0:
             self.hubspot_client.crm.contacts.basic_api.create(
-                simple_public_object_input=simple_public_object_input
+                simple_public_object_input_for_create=simple_public_object_input
             )
         else:
             self.hubspot_client.crm.contacts.basic_api.update(
