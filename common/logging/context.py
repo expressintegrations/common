@@ -47,6 +47,9 @@ class LoggingContext:
     def add_labels(cls, labels: dict[str, str]) -> contextvars.Token:
         """Add multiple labels to the current context."""
         current_labels = cls.get_labels()
+        labels = {
+            str(k): str(v) for k, v in labels.items() if k is not None and v is not None
+        }
         current_labels.update(labels)
         return cls.set_labels(current_labels)
 
@@ -61,7 +64,7 @@ R = TypeVar("R")
 
 
 def with_context_labels(
-    label_extractor: Callable[[Any], dict], param_name: str = "payload"
+    label_extractor: Callable[[Any], dict[str, str]], param_name: str = "payload"
 ) -> Callable:
     """
     Decorator to manage logging context for webhook endpoints.
