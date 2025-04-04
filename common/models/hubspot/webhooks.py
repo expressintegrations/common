@@ -25,7 +25,7 @@ class HubSpotAppWebhookEvent(BaseModel):
     association_removed: Optional[bool] = None
     is_primary_association: Optional[bool] = None
     primary_object_id: Optional[int] = None
-    merged_object_ids: Optional[List[int]]
+    merged_object_ids: Optional[List[int]] = None
     new_object_id: Optional[int] = None
     number_of_properties_moved: Optional[int] = None
     object_id: Optional[int] = None
