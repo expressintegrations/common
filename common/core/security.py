@@ -3,7 +3,6 @@ from typing import Union
 import jwt
 import jwt.algorithms
 import requests
-from dependency_injector.wiring import inject
 from fastapi import HTTPException, status, Header
 from jwt import ExpiredSignatureError, InvalidSignatureError, InvalidAudienceError
 
@@ -20,7 +19,6 @@ def get_google_certs():
     return requests.get(config["jwks_uri"]).json()
 
 
-@inject
 def verify_google(
     authorization: Union[str, None] = Header(default=None),
 ):
