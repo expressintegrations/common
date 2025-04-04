@@ -30,7 +30,7 @@ class CloudTasksService(BaseService):
         self,
         queue: str,
         handler_uri: str,
-        payload: dict | list | None = None,
+        payload: dict | list | str | None = None,
         payload_json: str | None = None,
         in_seconds: int = None,
         base_url: str = None,
@@ -65,7 +65,9 @@ class CloudTasksService(BaseService):
 
         if payload is not None:
             # The API expects a payload of type bytes.
-            converted_payload = json.dumps(payload).encode()
+            converted_payload = (
+                json.dumps(payload) if isinstance(payload, dict) else payload
+            ).encode()
 
             # Add the payload to the request.
             task["http_request"]["body"] = converted_payload
