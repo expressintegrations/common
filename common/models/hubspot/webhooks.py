@@ -4,6 +4,16 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
+from enum import Enum
+
+
+class SubscriptionType(str, Enum):
+    OBJECT_CREATION = "object.creation"
+    OBJECT_DELETION = "object.deletion"
+    OBJECT_PROPERTY_CHANGE = "object.propertyChange"
+    OBJECT_MERGE = "object.merge"
+    OBJECT_RESTORE = "object.restore"
+    OBJECT_ASSOCIATION_CHANGE = "object.associationChange"
 
 
 class HubSpotAppWebhookEvent(BaseModel):
@@ -13,7 +23,7 @@ class HubSpotAppWebhookEvent(BaseModel):
     portal_id: Optional[int] = None
     app_id: Optional[int] = None
     occurred_at: Optional[int] = None
-    subscription_type: Optional[str] = None
+    subscription_type: Optional[SubscriptionType] = None
     attempt_number: Optional[int] = None
     change_source: Optional[str] = None
     association_type_id: Optional[int] = None

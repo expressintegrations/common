@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import List, Tuple, Union, Dict
 
 from monday import MondayClient
+from monday.utils import gather_params
 
 from common.core.utils import is_json
 from common.models.monday.api.account import Account
@@ -297,9 +298,15 @@ class MondayService(BaseService):
         return items_with_column_values, cursor
 
     def get_item_ids_by_column_value(self, board_id, column_id, column_value):
-        data = self.monday_client.items.fetch_items_by_column_value(
-            board_id=board_id, column_id=column_id, value=column_value, limit=100
-        )["data"]["items_page_by_column_values"]
+        query = _get_item_query_without_updates(
+            board_id=board_id,
+            column_id=column_id,
+            value=column_value,
+            limit=100,
+        )
+        data = self.monday_client.custom.execute_custom_query(custom_query=query)[
+            "data"
+        ]["items_page_by_column_values"]
         item_ids = [item["id"] for item in data["items"]]
         cursor = data["cursor"]
         while cursor:
@@ -549,3 +556,43 @@ class MondayService(BaseService):
             "data"
         ]
         return WebhookResponse.model_validate(data["delete_webhook"])
+
+
+def _get_item_query_without_updates(
+    board_id, column_id, value, limit=None, cursor=None
+):
+    columns = (
+        [{"column_id": str(column_id), "column_values": [str(value)]}]
+        if not cursor
+        else None
+    )
+
+    raw_params = locals().items()
+    items_page_params = gather_params(
+        raw_params, excluded_params=["column_id", "value"]
+    )
+
+    query = (
+        """query
+        {
+            items_page_by_column_values (%s) {
+                cursor
+                items {
+                    id
+                    name
+                    group {
+                        id
+                        title
+                    }
+                    column_values {
+                        id
+                        text
+                        value
+                    }                
+                }
+            }
+        }"""
+        % items_page_params
+    )
+
+    return query
