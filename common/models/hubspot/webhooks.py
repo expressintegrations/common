@@ -16,8 +16,11 @@ class HubSpotAppWebhookEvent(BaseModel):
     subscription_type: Optional[str] = None
     attempt_number: Optional[int] = None
     change_source: Optional[str] = None
-    association_type: Optional[str] = None
+    association_type_id: Optional[int] = None
+    association_category: Optional[str] = None
+    from_object_type_id: Optional[str] = None
     from_object_id: Optional[int] = None
+    to_object_type_id: Optional[str] = None
     to_object_id: Optional[int] = None
     association_removed: Optional[bool] = None
     is_primary_association: Optional[bool] = None
@@ -26,10 +29,12 @@ class HubSpotAppWebhookEvent(BaseModel):
     new_object_id: Optional[int] = None
     number_of_properties_moved: Optional[int] = None
     object_id: Optional[int] = None
+    object_type_id: Optional[str] = None
     property_name: Optional[str] = None
     property_value: Optional[str] = None
     message_id: Optional[int] = None
     message_type: Optional[str] = None
+    source_id: Optional[str] = None
 
     class Config:
         populate_by_name = True
