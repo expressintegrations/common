@@ -19,6 +19,8 @@ setup(
         "google-cloud-tasks==2.18.0",
         "gunicorn==22.0.0",
         "hubspot-api-client==11.1.0",
+        "httpx==0.28.1",
+        "httpx-retry==0.3.0",
         "monday==2.0.0rc3",
         "pydantic==2.10.4",
         "PyJWT==2.10.1",
