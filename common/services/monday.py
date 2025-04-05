@@ -1,7 +1,9 @@
 import json
 import re
+import httpx
+from httpx_retry import AsyncRetryTransport, RetryPolicy
 from datetime import datetime, timezone
-from typing import List, Tuple, Union, Dict
+from typing import List, Tuple, Union, Dict, Any
 
 from monday import MondayClient
 from monday.utils import gather_params
@@ -21,9 +23,32 @@ from common.services.constants import (
 )
 
 
+class ApiError(Exception):
+    def __init__(self, url: str, status_code: int, message: str) -> None:
+        self.url = url
+        self.status_code = status_code
+        self.message = message
+        super().__init__(
+            f"Monday API Error: request to {url} failed with status {status_code}: {message}"
+        )
+
+
 class MondayService(BaseService):
     def __init__(self, access_token: str) -> None:
         self.monday_client = MondayClient(token=access_token)
+        exponential_config = (
+            RetryPolicy()
+            .with_max_retries(3)
+            .with_min_delay(0.5)
+            .with_multiplier(2)
+            .with_retry_on(lambda status_code: status_code in [429, 503, 504])
+        )
+        self.retry_policy = exponential_config
+        self.httpx_client = httpx.AsyncClient(
+            transport=AsyncRetryTransport(
+                policy=self.retry_policy,
+            )
+        )
         super().__init__(
             log_name="services.monday",
             exclude_inputs=[
@@ -37,6 +62,71 @@ class MondayService(BaseService):
                 "parse_item_column_values",
             ],
         )
+
+    async def _make_request(
+        self, url: str, method: str = "GET", **kwargs: Any
+    ) -> dict[str, Any]:
+        self.logger.log_debug(f"Making {method} request to {url} with params: {kwargs}")
+        try:
+            response: httpx.Response = await self.httpx_client.request(
+                method=method,
+                url=url,
+                **kwargs,
+            )
+            response.raise_for_status()
+            if response.headers.get("Content-Type") == "application/json":
+                return response.json()
+
+            return {
+                "status_code": response.status_code,
+                "content": response.text,
+            }
+        except httpx.HTTPStatusError as e:
+            self.logger.log_error(
+                f"HTTP error: {e.response.status_code} - {e.response.text}"
+            )
+            raise ApiError(
+                url=url,
+                status_code=e.response.status_code,
+                message=e.response.text,
+            ) from e
+        except httpx.RequestError as e:
+            self.logger.log_error(f"Request error: {e}")
+            raise ApiError(
+                url=url,
+                status_code=500,
+                message="Internal Server Error",
+            ) from e
+
+    async def close(self) -> None:
+        await self.httpx_client.aclose()
+
+    async def __aenter__(self) -> "MondayService":
+        return self
+
+    async def __aexit__(self, exc_type, exc_val, exc_tb) -> None:
+        await self.close()
+
+    async def post(
+        self, url: str, json: dict[str, Any] | None = None, **kwargs: Any
+    ) -> dict[str, Any]:
+        return await self._make_request(url, method="POST", json=json, **kwargs)
+
+    async def get(self, url: str, **kwargs: Any) -> dict[str, Any]:
+        return await self._make_request(url, method="GET", **kwargs)
+
+    async def invoke_monday_integration_webhook(
+        self,
+        url: str,
+        json: dict[str, Any],
+        signing_secret: str,
+    ) -> dict[str, Any]:
+        headers = {
+            "Authorization": signing_secret,
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+        }
+        return await self.post(url, json=json, headers=headers)
 
     def get_self(self) -> Me:
         return Me.model_validate(self.monday_client.me.get_details()["data"]["me"])
