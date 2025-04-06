@@ -26,6 +26,7 @@ class HubSpotAppWebhookEvent(BaseModel):
     subscription_type: Optional[SubscriptionType] = None
     attempt_number: Optional[int] = None
     change_source: Optional[str] = None
+    association_type: Optional[str] = None
     association_type_id: Optional[int] = None
     association_category: Optional[str] = None
     from_object_type_id: Optional[str] = None
