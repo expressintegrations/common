@@ -56,6 +56,7 @@ from common.models.hubspot.workflow_actions import (
     WorkflowFieldOption,
     WorkflowOptionsResponse,
 )
+from common.models.hubspot.crm import Operator
 from common.services import constants
 from common.services.base import BaseService
 
@@ -533,7 +534,7 @@ class HubSpotService(BaseService):
         self,
         object_type: str,
         property_name: str,
-        operator: str,
+        operator: Operator,
         value: Any = None,
         properties: list = None,
     ):

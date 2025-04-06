@@ -1,0 +1,17 @@
+from enum import Enum
+
+
+class Operator(str, Enum):
+    LESS_THAN = "LT"
+    LESS_THAN_OR_EQUALS = "LTE"
+    GREATER_THAN = "GT"
+    GREATER_THAN_OR_EQUALS = "GTE"
+    EQUALS = "EQ"
+    NOT_EQUALS = "NEQ"
+    BETWEEN = "BETWEEN"
+    IN = "IN"
+    NOT_IN = "NOT_IN"
+    HAS_PROPERTY = "HAS_PROPERTY"
+    NOT_HAS_PROPERTY = "NOT_HAS_PROPERTY"
+    CONTAINS_TOKEN = "CONTAINS_TOKEN"
+    NOT_CONTAINS_TOKEN = "NOT_CONTAINS_TOKEN"
