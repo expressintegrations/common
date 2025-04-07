@@ -28,7 +28,9 @@ class GoogleTokenValidator:
                 public_keys[kid] = jwt.algorithms.RSAAlgorithm.from_jwk(jwk)
         return public_keys
 
-    def verify_token(self, token: str, audience: str) -> tuple[bool, ValidationError | None]:
+    def verify_token(
+        self, token: str, audience: str
+    ) -> tuple[bool, ValidationError | None]:
         public_keys = self._get_public_keys()
 
         try:
@@ -38,14 +40,19 @@ class GoogleTokenValidator:
 
         key = public_keys.get(kid)
         if not key:
-            return False, ValidationError("Unable to verify token signature", "invalid_key")
+            return False, ValidationError(
+                "Unable to verify token signature", "invalid_key"
+            )
 
         try:
-            payload = jwt.decode(token, key=key, algorithms=["RS256"], audience=audience)
+            payload = jwt.decode(
+                token, key=key, algorithms=["RS256"], audience=audience
+            )
 
             if payload["iss"] != "https://accounts.google.com":
                 return False, ValidationError(
-                    f"Invalid token issuer: {payload['iss']} != https://accounts.google.com", "invalid_issuer"
+                    f"Invalid token issuer: {payload['iss']} != https://accounts.google.com",
+                    "invalid_issuer",
                 )
 
             return True, None
@@ -53,9 +60,16 @@ class GoogleTokenValidator:
         except jwt.ExpiredSignatureError:
             return False, ValidationError("Token has expired", "expired_token")
         except jwt.InvalidSignatureError:
-            return False, ValidationError("Invalid token signature", "invalid_signature")
-        except jwt.InvalidAudienceError:
-            unverified_audience = jwt.decode(token, options={"verify_signature": False}).get("aud")
             return False, ValidationError(
-                f"Invalid token audience: {audience} != {unverified_audience}", "invalid_audience"
+                "Invalid token signature", "invalid_signature"
+            )
+        except jwt.InvalidAudienceError:
+            unverified_audience = jwt.decode(
+                token, options={"verify_signature": False}
+            ).get("aud")
+            if unverified_audience in audience:
+                return True, None
+            return False, ValidationError(
+                f"Invalid token audience: {audience} != {unverified_audience}",
+                "invalid_audience",
             )
