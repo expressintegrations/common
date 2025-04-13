@@ -1,6 +1,7 @@
 from typing import Optional
 
 from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
 
 
 class SimpleBoard(BaseModel):
@@ -16,7 +17,11 @@ class BoardColumn(BaseModel):
 
 
 class SubitemsSettings(BaseModel):
-    allowMultipleItems: bool
-    itemTypeName: str
-    displayType: str
-    boardIds: list[int]
+    allow_multiple_items: bool
+    item_type_name: str
+    display_type: str
+    board_ids: list[int]
+
+    class Config:
+        populate_by_name = True
+        alias_generator = to_camel
