@@ -13,3 +13,10 @@ class BoardColumn(BaseModel):
     title: Optional[str] = None
     type: Optional[str] = None
     settings_str: Optional[str] = None
+
+
+class SubitemsSettings(BaseModel):
+    allowMultipleItems: bool
+    itemTypeName: str
+    displayType: str
+    boardIds: list[int]
