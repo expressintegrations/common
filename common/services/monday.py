@@ -469,7 +469,7 @@ class MondayService(BaseService):
             return column
         if is_json(column["value"]):
             column["value"] = json.loads(column["value"])
-        if column["type"] in ["item_id", "rating", "auto_number"]:
+        if column["type"] in ["item_id", "rating"]:
             column["value"] = int(column["text"])
         elif column["type"] == "vote":
             if len(column["text"]) > 0:
