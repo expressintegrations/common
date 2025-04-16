@@ -9,6 +9,7 @@ from monday import MondayClient
 from monday.utils import gather_params
 
 from common.core.utils import is_json
+from common.logging.client import Logger
 from common.models.monday.api.account import Account
 from common.models.monday.api.boards import SimpleBoard, BoardColumn
 from common.models.monday.api.items import SimpleColumn, ColumnValue
@@ -34,7 +35,11 @@ class ApiError(Exception):
 
 
 class MondayService(BaseService):
-    def __init__(self, access_token: str) -> None:
+    def __init__(
+        self,
+        access_token: str,
+        logger: Logger = None,
+    ) -> None:
         self.monday_client = MondayClient(token=access_token)
         exponential_config = (
             RetryPolicy()
@@ -51,16 +56,7 @@ class MondayService(BaseService):
         )
         super().__init__(
             log_name="services.monday",
-            exclude_inputs=[
-                "parse_item_with_column_values",
-                "parse_value",
-                "parse_item_column_values",
-            ],
-            exclude_outputs=[
-                "parse_item_with_column_values",
-                "parse_value",
-                "parse_item_column_values",
-            ],
+            logger=logger,
         )
 
     async def _make_request(
