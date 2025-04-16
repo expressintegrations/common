@@ -7,6 +7,7 @@ from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
 
 from common.core.utils import timed_lru_cache
+from common.logging.client import Logger
 from common.models.firestore.connections import Connection
 from common.models.firestore.installations import Installation
 from common.models.hubspot.workflow_actions import WorkflowOptionsResponse
@@ -67,6 +68,7 @@ class FirestoreService(BaseService):
         account_identifier: int | str,
         app_name: str,
         user_id: str,
+        logger: Logger | None = None,
     ) -> Connection:
         installation = Installation.find_one(
             {
@@ -75,6 +77,11 @@ class FirestoreService(BaseService):
                 "active": True,
             }
         )
+        if not logger:
+            logger = Logger(log_name="firestore.service")
+        logger.info(
+            f"Installation found for account identifier {account_identifier}: {installation.model_dump_json()}"
+        )
         connection_model: Type[Connection] = Connection.model_for(installation)
         return connection_model.find_one(
             {"app_name": app_name, "authorized_by_id": user_id}
@@ -82,8 +89,16 @@ class FirestoreService(BaseService):
 
     @staticmethod
     def get_connection_by_authorized_user(
-        installation: Installation, app_name: str, authorized_by_id: str
+        installation: Installation,
+        app_name: str,
+        authorized_by_id: str,
+        logger: Logger | None = None,
     ) -> Connection:
+        if not logger:
+            logger = Logger(log_name="firestore.service")
+        logger.info(
+            f"Getting connection for account intstallation: {installation.model_dump_json()}"
+        )
         connection_model: Type[Connection] = Connection.model_for(installation)
         return connection_model.find_one(
             {"app_name": app_name, "authorized_by_id": authorized_by_id}
