@@ -10,4 +10,6 @@ class BaseService:
         logger: Logger | None = None,
         **kwargs,
     ) -> None:
-        self.logger = logger or Logger(log_name=log_name, log_level="DEBUG")
+        self.logger = logger or Logger(
+            log_name=log_name, log_level="DEBUG", use_cloud=True
+        )
