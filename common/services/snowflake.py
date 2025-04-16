@@ -121,7 +121,7 @@ class SnowflakeService(BaseService):
         try:
             cs.execute(query)
         except ProgrammingError as e:
-            print(f"failed query:\n{query}")
+            self.logger.error(f"Query could not be performed: {query}")
             if "does not exist" in str(e) or "Insufficient privileges" in str(e):
                 raise SnowflakeIntegrationException(
                     f"{str(e)}\nPlease ensure the role {self.role} "
@@ -141,8 +141,8 @@ class SnowflakeService(BaseService):
             cs.execute(query)
             return cs.fetchall()
         except ProgrammingError as e:
+            self.logger.error(f"Query could not be performed: {query}")
             if "does not exist" in str(e) or "Insufficient privileges" in str(e):
-                print(f"Query could not be performed: {query}")
                 raise SnowflakeIntegrationException(
                     f"{str(e)}\nPlease ensure the {self.role} "
                     f"is granted access to this table "
