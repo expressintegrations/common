@@ -7,6 +7,7 @@ from snowflake.connector.errors import ProgrammingError
 
 from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
+from common.logging.client import Logger
 
 URL_CLOUD_PLATFORMS = [
     "us-east-1",
@@ -41,6 +42,7 @@ class SnowflakeService(BaseService):
         refresh_token: str = None,
         password: str = None,
         paramstyle: str = None,
+        logger: Logger = None,
     ) -> None:
         super().__init__(log_name="services.snowflake", private_output=False)
         if paramstyle:

@@ -34,6 +34,7 @@ from requests.exceptions import InvalidSchema
 from urllib3.util.retry import Retry
 
 from common.core.utils import merge_dicts_of_lists, timed_lru_cache
+from common.logging.client import Logger
 from common.models.hubspot.files import File
 from common.models.hubspot.marketing_events import (
     MarketingEvent,
@@ -70,6 +71,7 @@ class HubSpotService(BaseService):
         self,
         access_token: str = None,
         api_key: str = None,
+        logger: Logger = None,
     ) -> None:
         self.access_token = access_token
         self.api_key = api_key
@@ -85,6 +87,7 @@ class HubSpotService(BaseService):
         )
         super().__init__(
             log_name="hubspot.service",
+            logger=logger,
         )
 
     def get_account_details(self) -> HubSpotAccountDetails:
