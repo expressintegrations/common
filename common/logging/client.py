@@ -105,6 +105,7 @@ class Logger:
                 self._use_cloud = False
                 self._setup_local_logging(self._log_level)
         else:
+            self._logger.log(Severity.WARNING.python_level, "not using cloud logging")
             self._setup_local_logging(self._log_level)
 
     def _setup_local_logging(self, log_level: str) -> None:
@@ -209,6 +210,7 @@ class Logger:
                 prepared_payload, severity=severity, labels=final_labels
             )
         else:
+            self._logger.log(Severity.WARNING.python_level, "Logging to local logger")
             level = (severity or Severity.DEFAULT).python_level
             self._logger.log(level, json.dumps(prepared_payload | final_labels))
 
