@@ -1,6 +1,6 @@
 from datetime import datetime
 from enum import Enum
-from typing import Optional
+from typing import Any
 
 from pydantic import BaseModel, field_serializer
 
@@ -21,46 +21,48 @@ class EventType(str, Enum):
 
 
 class VersionData(BaseModel):
-    major: Optional[int] = None
-    minor: Optional[int] = None
-    patch: Optional[int] = None
-    type: Optional[str] = None
+    major: int | None = None
+    minor: int | None = None
+    patch: int | None = None
+    type: str | None = None
 
 
 class Subscription(BaseModel):
-    plan_id: Optional[str] = None
-    renewal_date: Optional[datetime] = None
-    is_trial: Optional[bool] = None
-    billing_period: Optional[str] = None
-    days_left: Optional[int] = None
-    pricing_version: Optional[int] = None
+    plan_id: str | None = None
+    renewal_date: datetime | None = None
+    is_trial: bool | None = None
+    billing_period: str | None = None
+    days_left: int | None = None
+    pricing_version: int | None = None
 
-    @field_serializer('renewal_date')
-    def serialize_renewal_date(self, dt: datetime, _info):
+    @field_serializer("renewal_date")
+    def serialize_renewal_date(self, dt: datetime | None = None, _info: Any = None):
+        if dt is None:
+            return None
         return dt.isoformat()
 
 
 class AppEventData(BaseModel):
-    app_id: Optional[int] = None
-    user_id: Optional[int] = None
-    user_email: Optional[str] = None
-    user_name: Optional[str] = None
-    user_cluster: Optional[str] = None
-    account_tier: Optional[str] = None
-    account_max_users: Optional[int] = None
-    account_id: Optional[int] = None
-    account_name: Optional[str] = None
-    account_slug: Optional[str] = None
-    version_data: Optional[VersionData] = None
-    timestamp: Optional[datetime] = None
-    subscription: Optional[Subscription] = None
-    user_country: Optional[str] = None
+    app_id: int | None = None
+    user_id: int | None = None
+    user_email: str | None = None
+    user_name: str | None = None
+    user_cluster: str | None = None
+    account_tier: str | None = None
+    account_max_users: int | None = None
+    account_id: int | None = None
+    account_name: str | None = None
+    account_slug: str | None = None
+    version_data: VersionData | None = None
+    timestamp: datetime | None = None
+    subscription: Subscription | None = None
+    user_country: str | None = None
 
-    @field_serializer('timestamp')
+    @field_serializer("timestamp")
     def serialize_timestamp(self, dt: datetime, _info):
         return dt.isoformat()
 
 
 class AppEvent(BaseModel):
-    type: Optional[EventType] = None
-    data: Optional[AppEventData] = None
+    type: EventType | None = None
+    data: AppEventData | None = None
