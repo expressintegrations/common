@@ -16,13 +16,16 @@ from common.services.base import BaseService
 
 
 class FirestoreService(BaseService):
-    def __init__(self, firestore_client: firestore.Client) -> None:
+    def __init__(
+        self,
+        firestore_client: firestore.Client,
+        logger: Logger | None = None,
+    ) -> None:
         self.firestore_client = firestore_client
         configure(self.firestore_client)
         super().__init__(
             log_name="firestore.service",
-            exclude_inputs=["set_account_connection"],
-            exclude_outputs=["get_account_connection"],
+            logger=logger,
         )
 
     def get_job(self, monday_integration_id, function_name: str):
