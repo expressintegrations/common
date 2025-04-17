@@ -26,20 +26,28 @@ class FieldInput(BaseModel):
 
 
 class Application(Model):
-    __collection__ = 'apps'
+    __collection__ = "apps"
     name: str
     label: str
     icon: Optional[str] = None
     required_inputs: Optional[List[FieldInput]] = []
     integration_id: Optional[str] = None
+    requires_user_auth: Optional[bool] = None
 
-    def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
+    def save(
+        self,
+        by_alias: bool = True,
+        exclude_unset: bool = True,
+        exclude_none: bool = False,
+    ) -> None:
         """
         Saves this model in the database.
 
         :raise DocumentIDError: If the document ID is not valid.
         """
-        data = self.model_dump(by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none)
+        data = self.model_dump(
+            by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none
+        )
         if self.__document_id__ in data:
             del data[self.__document_id__]
 
