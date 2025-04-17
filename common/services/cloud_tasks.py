@@ -7,6 +7,7 @@ from google.cloud import tasks_v2
 from google.cloud.tasks_v2 import Queue, RateLimits, RetryConfig, Task
 from google.protobuf import timestamp_pb2
 
+from common.logging.client import Logger
 from common.services.base import BaseService
 
 
@@ -18,13 +19,17 @@ class CloudTasksService(BaseService):
         location: str,
         base_url: str,
         service_account_email: str,
+        logger: Logger | None = None,
     ) -> None:
         self.cloud_tasks_client = cloud_tasks_client
         self.project = project
         self.location = location
         self.base_url = base_url
         self.service_account_email = service_account_email
-        super().__init__(log_name="cloud_tasks.service")
+        super().__init__(
+            log_name="cloud_tasks.service",
+            logger=logger,
+        )
 
     def enqueue(
         self,
