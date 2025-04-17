@@ -1,6 +1,5 @@
 from datetime import datetime
 from enum import Enum
-from typing import Any
 
 from pydantic import BaseModel, field_serializer
 
@@ -36,7 +35,7 @@ class Subscription(BaseModel):
     pricing_version: int | None = None
 
     @field_serializer("renewal_date")
-    def serialize_renewal_date(self, dt: datetime | None = None, _info: Any = None):
+    def serialize_renewal_date(self, dt: datetime, _info):
         if dt is None:
             return None
         return dt.isoformat()
