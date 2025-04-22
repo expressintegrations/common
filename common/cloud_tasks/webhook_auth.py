@@ -41,7 +41,8 @@ class GoogleTokenValidator:
         key = public_keys.get(kid)
         if not key:
             return False, ValidationError(
-                "Unable to verify token signature", "invalid_key"
+                f"Unable to verify token signature. Key ID {kid} not found in {public_keys}",
+                "invalid_key",
             )
 
         try:
