@@ -20,7 +20,10 @@ class GoogleTokenValidator:
         config = requests.get(GoogleTokenValidator.OIDC_ENDPOINT, timeout=10).json()
         return dict(requests.get(config["jwks_uri"], timeout=10).json())
 
-    def _get_public_keys(self) -> dict:
+    def _get_public_keys(self, refresh: bool = False) -> dict:
+        """Get the public keys from the Google certs."""
+        if refresh and "certs" in self.__dict__:
+            del self.__dict__["certs"]
         public_keys = {}
         for jwk in self.certs["keys"]:
             kid = jwk.get("kid")
@@ -40,10 +43,14 @@ class GoogleTokenValidator:
 
         key = public_keys.get(kid)
         if not key:
-            return False, ValidationError(
-                f"Unable to verify token signature. Key ID {kid} not found in {public_keys}",
-                "invalid_key",
-            )
+            public_keys = self._get_public_keys(refresh=True)
+            key = public_keys.get(kid)
+            if not key:
+                # If the key is still not found, return an error
+                return False, ValidationError(
+                    f"Unable to verify token signature. Key ID {kid} not found in {public_keys}",
+                    "invalid_key",
+                )
 
         try:
             payload = jwt.decode(
