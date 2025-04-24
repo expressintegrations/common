@@ -524,7 +524,7 @@ class MondayService(BaseService):
             format_data = "%Y-%m-%d %H:%M:%S %Z"
             dt = datetime.strptime(column["text"], format_data)
             column["value"] = f"{dt.replace(tzinfo=timezone.utc):%Y-%m-%d %H:%M:%S %z}"
-        elif column["type"] == "duration":
+        elif column["type"] in ["duration", "integration"]:
             # keep the column value as an object
             pass
         else:
