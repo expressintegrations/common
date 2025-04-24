@@ -68,7 +68,7 @@ class Logger:
         self,
         log_name: str,
         log_level: str = "INFO",
-        use_cloud: bool = False,
+        use_cloud: bool = True,
         logging_client: Client | None = None,
         labels: dict[str, str] | None = None,
     ) -> None:
