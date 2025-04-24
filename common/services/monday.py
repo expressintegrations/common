@@ -1,7 +1,7 @@
 import json
 import re
 import httpx
-from httpx_retry import AsyncRetryTransport, RetryPolicy
+from httpx_retries import RetryTransport, Retry
 from datetime import datetime, timezone
 from typing import List, Tuple, Union, Dict, Any
 
@@ -41,17 +41,14 @@ class MondayService(BaseService):
         logger: Logger = None,
     ) -> None:
         self.monday_client = MondayClient(token=access_token)
-        exponential_config = (
-            RetryPolicy()
-            .with_max_retries(3)
-            .with_min_delay(0.5)
-            .with_multiplier(2)
-            .with_retry_on(lambda status_code: status_code in [429, 503, 504])
+        self.retry_policy = Retry(
+            total=3,
+            backoff_factor=0.5,
+            status_forcelist=[429, 503, 504],
         )
-        self.retry_policy = exponential_config
         self.httpx_client = httpx.AsyncClient(
-            transport=AsyncRetryTransport(
-                policy=self.retry_policy,
+            transport=RetryTransport(
+                retry=self.retry_policy,
             )
         )
         super().__init__(
