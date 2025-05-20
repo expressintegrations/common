@@ -524,7 +524,11 @@ class HubSpotService(BaseService):
         )
 
     def search(
-        self, object_type: str, properties: list, filters: list, after: str = None
+        self,
+        object_type: str,
+        properties: list,
+        filters: list,
+        after: str | None = None,
     ):
         return self.hubspot_client.crm.objects.search_api.do_search(
             object_type=object_type,
@@ -539,7 +543,7 @@ class HubSpotService(BaseService):
         property_name: str,
         operator: Operator,
         value: Any = None,
-        properties: list = None,
+        properties: list | None = None,
     ):
         filters = [
             {"propertyName": property_name, "operator": operator, "value": f"{value}"}
@@ -638,31 +642,36 @@ class HubSpotService(BaseService):
         :param inputs: [{'id': int, 'after': str}]
         :param to_object_type: str
         """
-        batch_request = {"inputs": inputs}
-        associations_response = (
-            self.hubspot_client.crm.associations.v4.batch_api.get_page(
-                from_object_type=from_object_type,
-                to_object_type=to_object_type,
-                batch_input_public_fetch_associations_batch_request=batch_request,
-            )
-        )
+        chunk_size = 1000
+        responses = []
         results = defaultdict(list)
-        new_inputs = []
-        for result in associations_response.results:
-            results[result._from.id] += result.to
-            if result.paging and result.paging.next and result.paging.next.after:
-                new_inputs.append(
-                    {"id": result._from.id, "after": result.paging.next.after}
-                )
-        if new_inputs:
-            results = merge_dicts_of_lists(
-                dict1=results,
-                dict2=self.get_all_associations_batch(
+        while inputs:
+            chunk, inputs = inputs[:chunk_size], inputs[chunk_size:]
+            batch_request = {"inputs": chunk}
+            associations_response = (
+                self.hubspot_client.crm.associations.v4.batch_api.get_page(
                     from_object_type=from_object_type,
-                    inputs=new_inputs,
                     to_object_type=to_object_type,
-                ),
+                    batch_input_public_fetch_associations_batch_request=batch_request,
+                )
             )
+
+            new_inputs = []
+            for result in associations_response.results:
+                results[result._from.id] += result.to
+                if result.paging and result.paging.next and result.paging.next.after:
+                    new_inputs.append(
+                        {"id": result._from.id, "after": result.paging.next.after}
+                    )
+            if new_inputs:
+                results = merge_dicts_of_lists(
+                    dict1=results,
+                    dict2=self.get_all_associations_batch(
+                        from_object_type=from_object_type,
+                        inputs=new_inputs,
+                        to_object_type=to_object_type,
+                    ),
+                )
         return results
 
     def create_associations_batch(
