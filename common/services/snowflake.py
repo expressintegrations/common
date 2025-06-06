@@ -43,7 +43,7 @@ class SnowflakeService(BaseService):
         password: str = None,
         paramstyle: str = None,
         logger: Logger = None,
-        passcode_in_password: bool = False,
+        passcode: str = None,
     ) -> None:
         super().__init__(log_name="services.snowflake", private_output=False)
         if paramstyle:
@@ -59,7 +59,7 @@ class SnowflakeService(BaseService):
         self.client_secret = client_secret
         self.refresh_token = refresh_token
         self.password = password
-        self.passcode_in_password = passcode_in_password
+        self.passcode = passcode
         if region:
             self.account_url = f"{self.account_url}.{region}"
             if region.lower() not in URL_CLOUD_PLATFORMS:
@@ -85,7 +85,7 @@ class SnowflakeService(BaseService):
                     account=self.account_url,
                     warehouse=self.warehouse,
                     role=self.role,
-                    passcode_in_password=self.passcode_in_password,
+                    passcode=self.passcode,
                 )
             else:
                 raise SnowflakeIntegrationException("No authentication method provided")
