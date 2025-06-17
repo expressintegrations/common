@@ -23,3 +23,7 @@ class Connection(BaseModel):
     client_secret: Optional[str] = None
     token: Optional[Token] = None
     password: Optional[str] = None
+    passcode: Optional[str] = None
+    passcode_in_password: bool = False
+    private_key_file: Optional[str] = None
+    private_key_file_pwd: Optional[str] = None

@@ -7,9 +7,9 @@ from pydantic import BaseModel
 
 
 class AuthMethod(str, Enum):
-    OAUTH = 'OAuth 2.0'
-    API_KEY = 'API Key'
-    USERNAME_PASSWORD = 'Username/Password'
+    OAUTH = "OAuth 2.0"
+    API_KEY = "API Key"
+    USERNAME_PASSWORD = "Username/Password"
 
 
 class Authorization(BaseModel):
@@ -28,13 +28,19 @@ class Authorization(BaseModel):
     client_id: Optional[str] = None
     client_secret: Optional[str] = None
     password: Optional[str] = None
+    passcode: Optional[str] = None
+    passcode_in_password: bool = False
+    private_key_file: Optional[str] = None
+    private_key_file_pwd: Optional[str] = None
 
     # OAuth
     access_token: Optional[str] = None
     expires_in: Optional[int] = 0
     refresh_token: Optional[str] = None
     token_type: Optional[str] = None
-    expires_at: Optional[int] = int(datetime.now(tz=timezone.utc).timestamp()) + expires_in
+    expires_at: Optional[int] = (
+        int(datetime.now(tz=timezone.utc).timestamp()) + expires_in
+    )
     id_token: Optional[str] = None
 
     # HubSpot
@@ -54,15 +60,22 @@ class Connection(SubModel):
     ever_connected: Optional[bool] = False
 
     class Collection(SubCollection):
-        __collection_tpl__ = 'installations/{id}/connections'
+        __collection_tpl__ = "installations/{id}/connections"
 
-    def save(self, by_alias: bool = True, exclude_unset: bool = False, exclude_none: bool = False) -> None:
+    def save(
+        self,
+        by_alias: bool = True,
+        exclude_unset: bool = False,
+        exclude_none: bool = False,
+    ) -> None:
         """
         Saves this model in the database.
 
         :raise DocumentIDError: If the document ID is not valid.
         """
-        data = self.model_dump(by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none)
+        data = self.model_dump(
+            by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none
+        )
         if self.__document_id__ in data:
             del data[self.__document_id__]
 

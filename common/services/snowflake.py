@@ -35,15 +35,17 @@ class SnowflakeService(BaseService):
         username: str,
         role: str,
         warehouse: str,
-        redirect_uri: str = None,
-        access_token: str = None,
-        client_id: str = None,
-        client_secret: str = None,
-        refresh_token: str = None,
-        password: str = None,
-        paramstyle: str = None,
-        logger: Logger = None,
-        passcode: str = None,
+        redirect_uri: str | None = None,
+        access_token: str | None = None,
+        client_id: str | None = None,
+        client_secret: str | None = None,
+        refresh_token: str | None = None,
+        password: str | None = None,
+        paramstyle: str | None = None,
+        logger: Logger | None = None,
+        passcode: str | None = None,
+        private_key_file: str | None = None,
+        private_key_file_pwd: str | None = None,
     ) -> None:
         super().__init__(log_name="services.snowflake", private_output=False)
         if paramstyle:
@@ -60,6 +62,8 @@ class SnowflakeService(BaseService):
         self.refresh_token = refresh_token
         self.password = password
         self.passcode = passcode
+        self.private_key_file = private_key_file
+        self.private_key_file_pwd = private_key_file_pwd
         if region:
             self.account_url = f"{self.account_url}.{region}"
             if region.lower() not in URL_CLOUD_PLATFORMS:
@@ -69,7 +73,17 @@ class SnowflakeService(BaseService):
 
     def connect(self):
         try:
-            if self.access_token:
+            if self.private_key_file and self.private_key_file_pwd:
+                self.ctx = snowflake.connector.connect(
+                    user=self.username,
+                    account=self.account_url,
+                    authenticator="SNOWFLAKE_JWT",
+                    private_key_file=self.private_key_file,
+                    private_key_file_pwd=self.private_key_file_pwd,
+                    warehouse=self.warehouse,
+                    role=self.role,
+                )
+            elif self.access_token:
                 self.ctx = snowflake.connector.connect(
                     user=self.username,
                     account=self.account_url,
@@ -122,6 +136,8 @@ class SnowflakeService(BaseService):
     def execute(self, query, keep_alive: bool = False):
         if not self.connected:
             self.connect()
+        if not self.ctx:
+            raise SnowflakeIntegrationException("Not connected to Snowflake")
         cs = self.ctx.cursor()
         try:
             cs.execute(query)
@@ -141,6 +157,8 @@ class SnowflakeService(BaseService):
     def get_rows(self, query, keep_alive: bool = False):
         if not self.connected:
             self.connect()
+        if not self.ctx:
+            raise SnowflakeIntegrationException("Not connected to Snowflake")
         cs = self.ctx.cursor()
         try:
             cs.execute(query)
@@ -159,6 +177,8 @@ class SnowflakeService(BaseService):
                 self.close()
 
     def close(self):
+        if not self.ctx:
+            raise SnowflakeIntegrationException("Not connected to Snowflake")
         self.ctx.close()
         self.connected = False
 
