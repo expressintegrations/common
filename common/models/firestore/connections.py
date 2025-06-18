@@ -10,6 +10,7 @@ class AuthMethod(str, Enum):
     OAUTH = "OAuth 2.0"
     API_KEY = "API Key"
     USERNAME_PASSWORD = "Username/Password"
+    PRIVATE_KEY = "Private Key"
 
 
 class Authorization(BaseModel):
