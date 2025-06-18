@@ -23,6 +23,7 @@ class FieldInput(BaseModel):
     items: Optional[List[FieldItem]] = []
     visible: Optional[bool] = None
     required: Optional[bool] = None
+    display_order: Optional[int] = None
 
 
 class Application(Model):

@@ -4,6 +4,8 @@ from typing import List
 
 import snowflake.connector
 from snowflake.connector.errors import ProgrammingError
+from cryptography.hazmat.backends import default_backend
+from cryptography.hazmat.primitives import serialization
 
 from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
@@ -74,12 +76,22 @@ class SnowflakeService(BaseService):
     def connect(self):
         try:
             if self.private_key_file and self.private_key_file_pwd:
+                p_key = serialization.load_pem_private_key(
+                    bytes(self.private_key_file, "utf-8"),
+                    password=bytes(self.private_key_file_pwd, "utf-8"),
+                    backend=default_backend(),
+                )
+
+                pkb = p_key.private_bytes(
+                    encoding=serialization.Encoding.DER,
+                    format=serialization.PrivateFormat.PKCS8,
+                    encryption_algorithm=serialization.NoEncryption(),
+                )
                 self.ctx = snowflake.connector.connect(
                     user=self.username,
                     account=self.account_url,
                     authenticator="SNOWFLAKE_JWT",
-                    private_key_file=self.private_key_file,
-                    private_key_file_pwd=self.private_key_file_pwd,
+                    private_key=pkb,
                     warehouse=self.warehouse,
                     role=self.role,
                 )
