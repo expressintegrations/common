@@ -1,5 +1,6 @@
 import base64
 import json
+import re
 from typing import List
 
 import snowflake.connector
@@ -65,6 +66,17 @@ class SnowflakeService(BaseService):
         self.password = password
         self.passcode = passcode
         self.private_key_file = private_key_file
+        # If the private key file still has the -----BEGIN... and -----END...
+        # remove them and remove any newlines using regex
+        if self.private_key_file and "-----BEGIN" in self.private_key_file:
+            self.private_key_file = re.sub(
+                r"-----BEGIN.*-----", "", self.private_key_file
+            )
+            self.private_key_file = re.sub(
+                r"-----END.*-----", "", self.private_key_file
+            )
+            self.private_key_file = re.sub(r"\n", "", self.private_key_file)
+
         self.private_key_file_pwd = private_key_file_pwd
         if region:
             self.account_url = f"{self.account_url}.{region}"
