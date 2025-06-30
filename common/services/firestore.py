@@ -57,7 +57,7 @@ class FirestoreService(BaseService):
     ) -> Connection:
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({"app_name": app_name, "active": True})
+        return connection_model.find_one({"app_name": app_name, "connected": True})
 
     @staticmethod
     def get_connection_by_app_account_identifier(
