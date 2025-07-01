@@ -39,14 +39,14 @@ class LoggingContext:
     @classmethod
     def add_label(cls, key: str, value: str) -> contextvars.Token:
         """Add a label to the current context."""
-        labels = cls.get_labels()
+        labels = cls.get_labels().copy()  # Make a copy to avoid context leakage
         labels[key] = value
         return cls.set_labels(labels)
 
     @classmethod
     def add_labels(cls, labels: dict[str, str]) -> contextvars.Token:
         """Add multiple labels to the current context."""
-        current_labels = cls.get_labels()
+        current_labels = cls.get_labels().copy()  # Make a copy to avoid context leakage
         labels = {
             str(k): str(v) for k, v in labels.items() if k is not None and v is not None
         }
