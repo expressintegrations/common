@@ -16,6 +16,7 @@ class BoardColumnWithSnowflakeDefinition(BaseModel):
 class LoadMondayDataRequest(BaseModel):
     monday_account_id: int
     monday_user_id: int
+    board_id: int | None = None
     table_name: str
     snowflake_key_column: str
     columns_with_snowflake_definitions: List[BoardColumnWithSnowflakeDefinition]
