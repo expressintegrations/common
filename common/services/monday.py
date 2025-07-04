@@ -666,7 +666,7 @@ class MondayService(BaseService):
                 board_id=board_id,
                 url=url,
                 event=event,
-                config={"columnId": column_id} if column_id else {},
+                config={"columnId": column_id} if column_id else None,
             )
             if "data" not in data:
                 raise Exception(f"Failed to create webhook: {data}")
