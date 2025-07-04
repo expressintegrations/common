@@ -22,6 +22,8 @@ from common.services.constants import (
     UNSUPPORTED_MONDAY_COLUMN_TYPES,
     ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS,
 )
+from monday_async import AsyncMondayClient
+from aiohttp import ClientSession
 
 
 class ApiError(Exception):
@@ -40,6 +42,7 @@ class MondayService(BaseService):
         access_token: str,
         logger: Logger = None,
     ) -> None:
+        self.access_token = access_token
         self.monday_client = MondayClient(token=access_token)
         self.retry_policy = Retry(
             total=3,
@@ -639,6 +642,36 @@ class MondayService(BaseService):
             "data"
         ]
         return WebhookResponse.model_validate(data["delete_webhook"])
+
+    ###### ASYNC METHODS ######
+
+    async def get_self_async(self) -> Me:
+        async with ClientSession() as session:
+            async_monday_client = AsyncMondayClient(
+                token=self.access_token,
+                session=session,
+            )
+            data = await async_monday_client.users.get_me()
+            return Me.model_validate(data["data"]["me"])
+
+    async def create_webhook_async(
+        self, board_id, url, event, column_id=None
+    ) -> WebhookResponse:
+        async with ClientSession() as session:
+            async_monday_client = AsyncMondayClient(
+                token=self.access_token,
+                session=session,
+            )
+            data = await async_monday_client.webhooks.create_webhook(
+                board_id=board_id,
+                url=url,
+                event=event,
+                config={"columnId": column_id} if column_id else {},
+            )
+            if "data" not in data:
+                raise Exception(f"Failed to create webhook: {data}")
+
+            return WebhookResponse.model_validate(data["data"]["create_webhook"])
 
 
 def _get_item_query_without_updates(
