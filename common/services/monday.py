@@ -3,7 +3,7 @@ import re
 import httpx
 from httpx_retries import RetryTransport, Retry
 from datetime import datetime, timezone
-from typing import List, Tuple, Union, Dict, Any
+from typing import List, Tuple, Dict, Any
 
 from monday import MondayClient
 from monday.utils import gather_params
@@ -12,7 +12,7 @@ from common.core.utils import is_json
 from common.logging.client import Logger
 from common.models.monday.api.account import Account
 from common.models.monday.api.boards import SimpleBoard, BoardColumn
-from common.models.monday.api.items import SimpleColumn, ColumnValue
+from common.models.monday.api.items import ColumnDetails, ColumnValue
 from common.models.monday.api.me import Me
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
@@ -23,6 +23,7 @@ from common.services.constants import (
     ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS,
 )
 from monday_async import AsyncMondayClient
+from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from aiohttp import ClientSession
 
 
@@ -40,7 +41,7 @@ class MondayService(BaseService):
     def __init__(
         self,
         access_token: str,
-        logger: Logger = None,
+        logger: Logger | None = None,
     ) -> None:
         self.access_token = access_token
         self.monday_client = MondayClient(token=access_token)
@@ -140,7 +141,7 @@ class MondayService(BaseService):
             "data"
         ]["apps_monetization_status"]["is_supported"]
 
-    def get_app_subscription(self) -> Subscription:
+    def get_app_subscription(self) -> Subscription | None:
         query = """
         query {
             app_subscription {
@@ -189,6 +190,7 @@ class MondayService(BaseService):
             query {
               boards(state: active) {
                 id
+                name
               }
             }
         """
@@ -203,7 +205,7 @@ class MondayService(BaseService):
         clean_params = {
             k: v if v not in [None, ""] else "null" for k, v in params.items()
         }
-        return self.monday_client.boards.fetch_boards(**clean_params)["data"]["boards"]
+        return self.monday_client.boards.fetch_boards(**clean_params)["data"]["boards"]  # type: ignore
 
     def get_boards_in_workspace(self, workspace_id: int) -> List[SimpleBoard]:
         page = 1
@@ -262,19 +264,19 @@ class MondayService(BaseService):
     def get_monday_column_options_for_snowflake(self, board_id):
         monday_board_columns = self.get_board_columns(board_id)
 
-        def is_allowable_for_snowflake(column):
-            return column["type"] in ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
+        def is_allowable_for_snowflake(column: BoardColumn):
+            return column.type in ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS
 
         return list(
             map(
-                lambda column: {"title": column["title"], "value": column},
+                lambda column: {"title": column.title, "value": column},
                 filter(is_allowable_for_snowflake, monday_board_columns),
             )
         )
 
     def get_item_with_column_values(
         self, item_id, return_type="list"
-    ) -> Union[List[ColumnValue] | Dict[str, ColumnValue]]:
+    ) -> List[ColumnValue] | Dict[str, ColumnValue]:
         query = f"""
         query {{
             items (ids: [{item_id}]) {{
@@ -306,13 +308,16 @@ class MondayService(BaseService):
         if return_type == "list":
             return column_values
         elif return_type == "dict":
-            return {v["id"]: v for v in column_values}
+            return {v.id: v for v in column_values}
         else:
             return column_values
 
     def get_items_with_column_values(
-        self, board_id, limit: int = 100, cursor: str = None
-    ) -> Tuple[List[List[ColumnValue]], str]:
+        self,
+        board_id,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> Tuple[List[List[ColumnValue]], str | None]:
         if not cursor:
             query = f"""
             query {{
@@ -420,7 +425,11 @@ class MondayService(BaseService):
         )["data"]
 
     def create_item(
-        self, board_id: int, item_name: str, column_values: dict, group_id: str = None
+        self,
+        board_id: int,
+        item_name: str,
+        column_values: dict,
+        group_id: str | None = None,
     ):
         if not group_id:
             query = f"""
@@ -542,7 +551,7 @@ class MondayService(BaseService):
             0,
             ColumnValue(
                 id="name",
-                column=SimpleColumn(id="name", title="Item Name"),
+                column=ColumnDetails(title="Item Name"),
                 type="name",
                 value=item["name"],
                 text=item["name"],
@@ -552,7 +561,7 @@ class MondayService(BaseService):
             0,
             ColumnValue(
                 id="id",
-                column=SimpleColumn(id="id", title="Item ID"),
+                column=ColumnDetails(title="Item ID"),
                 type="item_id",
                 value=int(item["id"]),
                 text=item["id"],
@@ -662,16 +671,73 @@ class MondayService(BaseService):
                 token=self.access_token,
                 session=session,
             )
-            data = await async_monday_client.webhooks.create_webhook(
+            response = await async_monday_client.webhooks.create_webhook(
                 board_id=board_id,
                 url=url,
                 event=event,
                 config={"columnId": column_id} if column_id else None,
             )
-            if "data" not in data:
-                raise Exception(f"Failed to create webhook: {data}")
+            if "data" not in response:
+                raise Exception(f"Failed to create webhook: {response}")
 
-            return WebhookResponse.model_validate(data["data"]["create_webhook"])
+            return WebhookResponse.model_validate(response["data"]["create_webhook"])
+
+    async def get_item_with_column_values_async(
+        self, item_id, return_type="list"
+    ) -> List[ColumnValue] | Dict[str, ColumnValue]:
+        async with ClientSession() as session:
+            async_monday_client = AsyncMondayClient(
+                token=self.access_token,
+                session=session,
+            )
+            response = await async_monday_client.items.get_items_by_id(
+                ids=[item_id],
+            )
+            item = response["data"]["items"][0]
+            column_values = self.parse_item_column_values(item)
+
+            if return_type == "list":
+                return column_values
+            elif return_type == "dict":
+                return {v.id: v for v in column_values}
+            else:
+                return column_values
+
+    async def get_boards_async(
+        self,
+        ids: ID | List[ID] | None = None,
+        board_kind: BoardKind | None = None,
+        state: State | None = None,
+        workspace_ids: ID | List[ID] | None = None,
+        order_by: BoardsOrderBy | None = None,
+        limit: int | None = None,
+        page: int | None = None,
+    ):
+        async with ClientSession() as session:
+            async_monday_client = AsyncMondayClient(
+                token=self.access_token,
+                session=session,
+            )
+            return await async_monday_client.boards.get_boards(
+                ids=ids if ids is not None else [],
+                board_kind=board_kind,
+                state=state if state is not None else State.ACTIVE,
+                workspace_ids=workspace_ids if workspace_ids is not None else [],
+                order_by=order_by,
+                limit=limit if limit is not None else 25,
+                page=page if page is not None else 1,
+            )
+
+    async def get_board_columns_async(self, board_id) -> List[BoardColumn]:
+        data = await self.get_boards_async(ids=board_id)
+        columns = [
+            BoardColumn.model_validate(c)
+            for c in data["boards"][0]["columns"]
+            if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+        ]
+
+        columns.insert(0, BoardColumn(id="id", title="Item ID", type="pulse-id"))
+        return columns
 
 
 def _get_item_query_without_updates(
