@@ -729,10 +729,10 @@ class MondayService(BaseService):
             )
 
     async def get_board_columns_async(self, board_id) -> List[BoardColumn]:
-        data = await self.get_boards_async(ids=board_id)
+        response = await self.get_boards_async(ids=board_id)
         columns = [
             BoardColumn.model_validate(c)
-            for c in data["boards"][0]["columns"]
+            for c in response["data"]["boards"][0]["columns"]
             if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
         ]
 
