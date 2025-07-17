@@ -583,10 +583,13 @@ class MondayService(BaseService):
                 self.logger.error(f"Error evaluating formula: {e}")
 
         elif column["type"] == "mirror":
-            settings_str = json.loads(column["column"].get("settings_str"))
+            settings_str = column["column"].get("settings_str")
+            if not settings_str:
+                raise Exception(f"No settings string found for mirror column: {column}")
+            settings = json.loads(settings_str)
             # Settings string example: "{\"relation_column\":{\"subitems\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"4154746971\":[\"numeric_mkpy9ap3\"]},\"function\":\"sum\"}"
             # If the function is a math function, we need to apply it to the values of the mirrored items
-            function = settings_str.get("function")
+            function = settings.get("function")
             evaluated_value = column["display_value"]
             if function == "sum":
                 values = column["display_value"].split(", ")
