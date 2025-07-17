@@ -591,7 +591,7 @@ class MondayService(BaseService):
                     },
                 )
             except Exception as e:
-                self.logger.error(f"Error evaluating formula: {e}")
+                self.logger.error(f"Error evaluating formula ({formula}): {e}")
 
         elif column["type"] == "mirror":
             settings_str = column["column"].get("settings_str") or "{}"
