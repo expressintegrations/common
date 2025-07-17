@@ -987,17 +987,20 @@ class MondayService(BaseService):
         last_exception = None
 
         for attempt in range(max_retries + 1):
+            session = None
             try:
-                async with aiohttp.ClientSession(
+                session = aiohttp.ClientSession(
                     timeout=timeout,
                     connector=connector,
                     raise_for_status=True,
-                ) as session:
-                    async_monday_client = AsyncMondayClient(
-                        token=self.access_token,
-                        session=session,
-                    )
-                    return await operation(async_monday_client)
+                )
+                async_monday_client = AsyncMondayClient(
+                    token=self.access_token,
+                    session=session,
+                )
+                result = await operation(async_monday_client)
+                await session.close()
+                return result
 
             except (
                 aiohttp.ClientError,
@@ -1008,7 +1011,12 @@ class MondayService(BaseService):
                 last_exception = e
 
                 if attempt == max_retries:
+                    if session:
+                        await session.close()
                     raise e
+
+                if session:
+                    await session.close()
 
                 delay = min(2**attempt, 10)
                 await asyncio.sleep(delay)
