@@ -2,7 +2,7 @@ import json
 import re
 import httpx
 from httpx_retries import RetryTransport, Retry
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import List, Tuple, Dict, Any
 
 from monday import MondayClient
@@ -579,6 +579,95 @@ class MondayService(BaseService):
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
             try:
+                format_map = {
+                    "$#,##0.00": "${:,.2f}",
+                    "#,##0.00": "{:,.2f}",
+                    "#,##0": "{:,}",
+                    "0.00": "{:.2f}",
+                    "0": "{}",
+                }
+
+                def search(find_text, within_text, start_num=1):
+                    pos = within_text.lower().find(find_text.lower(), start_num - 1)
+                    return pos + 1 if pos != -1 else None
+
+                def switch_func(value, *args):
+                    # Check if we have a default (odd number of args)
+                    has_default = len(args) % 2 == 1
+                    pairs = args[:-1] if has_default else args
+                    default = args[-1] if has_default else None
+
+                    # Look for matching value in pairs
+                    for i in range(0, len(pairs), 2):
+                        if pairs[i] == value:
+                            return pairs[i + 1]
+
+                    return default
+
+                def workdays_func(to_date, from_date):
+                    # Convert strings to datetime if needed
+                    if isinstance(to_date, str):
+                        to_date = datetime.strptime(to_date, "%Y-%m-%d")
+                    if isinstance(from_date, str):
+                        from_date = datetime.strptime(from_date, "%Y-%m-%d")
+
+                    # Ensure start is before end
+                    start = min(to_date, from_date)
+                    end = max(to_date, from_date)
+
+                    # Count working days (Monday=0 to Friday=4)
+                    working_days = 0
+                    current_date = start
+
+                    while current_date <= end:
+                        if current_date.weekday() < 5:  # Monday to Friday
+                            working_days += 1
+                        current_date += timedelta(days=1)
+
+                    return working_days
+
+                def workday_func(start_date, num_days):
+                    # Convert string to datetime if needed
+                    if isinstance(start_date, str):
+                        start_date = datetime.strptime(start_date, "%Y-%m-%d")
+
+                    current_date = start_date
+                    days_added = 0
+                    direction = 1 if num_days > 0 else -1
+                    target_days = abs(num_days)
+
+                    while days_added < target_days:
+                        current_date += timedelta(days=direction)
+                        # Count only weekdays (Monday=0 to Friday=4)
+                        if current_date.weekday() < 5:
+                            days_added += 1
+
+                    return current_date
+
+                def datevalue_func(date_text):
+                    # Convert to string if not already
+                    date_str = str(date_text)
+
+                    # Try different date formats
+                    formats = [
+                        "%Y-%m-%d",
+                        "%m/%d/%Y",
+                        "%d/%m/%Y",
+                        "%Y/%m/%d",
+                        "%m-%d-%Y",
+                        "%d-%m-%Y",
+                    ]
+
+                    for fmt in formats:
+                        try:
+                            date_obj = datetime.strptime(date_str, fmt)
+                            # Excel's epoch is January 1, 1900 (with adjustment for leap year bug)
+                            return (date_obj - datetime(1900, 1, 1)).days + 2
+                        except ValueError:
+                            continue
+
+                    raise ValueError(f"Unable to parse date: {date_text}")
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -597,6 +686,87 @@ class MondayService(BaseService):
                         "DIVIDE": lambda x, y: x / y,
                         "POWER": lambda x, y: x**y,
                         "SQRT": lambda x: x**0.5,
+                        "IF": lambda condition, true_value, false_value: true_value
+                        if condition
+                        else false_value,
+                        "SWITCH": switch_func,
+                        "TEXT": lambda x, y: format_map[y].format(
+                            float(x) if "#" in y else int(float(x))
+                        ),
+                        "CONCATENATE": lambda *args: "".join(args),
+                        "REPLACE": lambda text, start, num_chars, new_text: text[
+                            : start - 1
+                        ]
+                        + new_text
+                        + text[start - 1 + num_chars :],
+                        "SUBSTITUTE": lambda text, old, new: text.replace(old, new),
+                        "SEARCH": search,
+                        "LEFT": lambda text, num_chars: text[:num_chars],
+                        "RIGHT": lambda text, num_chars: text[-num_chars:],
+                        "LEN": lambda text: len(text),
+                        "REPT": lambda text, num_times: text * num_times,
+                        "TRIM": lambda text: text.strip(),
+                        "UPPER": lambda text: text.upper(),
+                        "LOWER": lambda text: text.lower(),
+                        "PI": lambda: math.pi,
+                        "TRUE": lambda: True,
+                        "FALSE": lambda: False,
+                        "DATE": lambda y, m, d: datetime(y, m, d).strftime("%Y-%m-%d"),
+                        "DAYS": lambda start_date, end_date: (
+                            end_date - start_date
+                        ).days,
+                        "WORKDAYS": workdays_func,
+                        "TODAY": lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        "FORMAT_DATE": lambda date, format_str: datetime.strptime(
+                            date, format_str
+                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        "YEAR": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).year,
+                        "MONTH": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).month,
+                        "WEEKNUM": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).isocalendar()[1],
+                        "ISOWEEKNUM": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).isocalendar()[1],
+                        "DAY": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).day,
+                        "HOUR": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).hour,
+                        "MINUTE": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).minute,
+                        "SECOND": lambda date: datetime.strptime(
+                            date, "%Y-%m-%d %H:%M:%S"
+                        ).second,
+                        "ADD_DAYS": lambda date, days: (
+                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                            + timedelta(days=days)
+                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        "SUBTRACT_DAYS": lambda date, days: (
+                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                            - timedelta(days=days)
+                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        "ADD_MINUTES": lambda date, minutes: (
+                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                            + timedelta(minutes=minutes)
+                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        "SUBTRACT_MINUTES": lambda date, minutes: (
+                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                            - timedelta(minutes=minutes)
+                        ).strftime("%Y-%m-%d %H:%M:%S"),
+                        "HOURS_DIFF": lambda date1, date2: (
+                            datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
+                            - datetime.strptime(date2, "%Y-%m-%d %H:%M:%S")
+                        ).total_seconds()
+                        / 3600,
+                        "WORKDAY": workday_func,
+                        "DATEVALUE": datevalue_func,
                     },
                 )
             except Exception as e:
