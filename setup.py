@@ -33,5 +33,6 @@ setup(
         "stripe==11.5.0",
         "urllib3==2.2.2",
         "uvicorn==0.27.1",
+        "simpleeval==1.0.3",
     ],
 )

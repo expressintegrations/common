@@ -42,7 +42,6 @@ ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS = [
 ]
 
 UNSUPPORTED_MONDAY_COLUMN_TYPES = [
-    "formula",
     "auto_number",
     "progress",
     "button",
