@@ -4,11 +4,12 @@ import json
 import logging as python_logging
 import sys
 import traceback
+from contextlib import contextmanager
 from enum import Enum
-from typing import Any, Protocol
+from typing import Any, Generator, Protocol
 
 from google.cloud import logging as cloud_logging
-from google.cloud.logging_v2 import Client
+from google.cloud.logging_v2 import Batch, Client
 from google.cloud.logging_v2.logger import Logger as CloudLogger
 
 from common.logging.context import LoggingContext
@@ -68,7 +69,7 @@ class Logger:
         self,
         log_name: str,
         log_level: str = "INFO",
-        use_cloud: bool = True,
+        use_cloud: bool = False,
         logging_client: Client | None = None,
         labels: dict[str, str] | None = None,
     ) -> None:
@@ -91,13 +92,43 @@ class Logger:
         self._labels = labels or {}
         self._initialize_logger()
 
+    @contextmanager
+    def batch(self) -> Generator[None, None, None]:
+        """Context manager that enables batch logging mode.
+
+        When in batch mode, all logs will be batched together and sent when the context exits.
+        This is most beneficial for cloud logging to reduce API calls.
+        For local logging, this method acts as a no-op but maintains the interface for consistency.
+
+        Example:
+            ```python
+            with logger.batch():
+                logger.info("Message 1")  # These messages will be batched in cloud mode
+                logger.info("Message 2")  # and sent together
+            # Messages are sent when context exits (in cloud mode)
+            ```
+        """
+        if self._use_cloud and isinstance(self._logger, CloudLogger):
+            # Use cloud batching for cloud logging
+            batch = self._logger.batch()
+            original_logger = self._logger
+            self._logger = batch
+            try:
+                yield
+            finally:
+                batch.commit()
+                self._logger = original_logger
+        else:
+            # For local logging, just proceed normally (no batching)
+            yield
+
     def _initialize_logger(self) -> None:
         """Initialize or reinitialize the logger with current settings."""
         if self._use_cloud:
             try:
                 client: Client = self._logging_client or cloud_logging.Client()
-                self._logger: CloudLogger | python_logging.Logger = client.logger(
-                    name=self._log_name, labels=self._labels
+                self._logger: CloudLogger | python_logging.Logger | Batch = (
+                    client.logger(name=self._log_name, labels=self._labels)
                 )
             except Exception as e:
                 sys.stderr.write(f"Failed to initialize cloud logging: {e}\n")
@@ -167,6 +198,7 @@ class Logger:
         if context_labels:
             final_labels.update(context_labels)
 
+        final_labels = {str(k): str(v) for k, v in final_labels.items()}
         return payload, final_labels
 
     # Property to update logger labels
@@ -204,7 +236,7 @@ class Logger:
             return  # Skip logging if below threshold
         prepared_payload, final_labels = self._prepare_payload(payload, labels)
 
-        if isinstance(self._logger, CloudLogger):
+        if isinstance(self._logger, CloudLogger) or isinstance(self._logger, Batch):
             self._logger.log_struct(
                 prepared_payload, severity=severity, labels=final_labels
             )
