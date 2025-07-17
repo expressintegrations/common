@@ -540,7 +540,7 @@ class MondayService(BaseService):
         elif column["type"] in ["duration", "integration"]:
             # keep the column value as an object
             pass
-        elif column["type"] == "formula":
+        elif column["type"] == "formula" and "display_value" in column:
             column["value"] = column["display_value"]
             if column["display_value"] != "null":
                 return column
