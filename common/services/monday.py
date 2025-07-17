@@ -27,6 +27,7 @@ from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from aiohttp import ClientSession
 import statistics
 from simpleeval import simple_eval
+import math
 
 
 class ApiError(Exception):
@@ -574,18 +575,26 @@ class MondayService(BaseService):
                 replacement_value = formula_column_value["value"]
                 if formula_column_value["type"] == "mirror":
                     replacement_value = formula_column_value["value"]["display_value"]
-                if formula_column_value["type"] == "numbers" and not replacement_value:
+                if replacement_value is None or replacement_value == "":
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
             try:
                 column["value"] = simple_eval(
                     formula,
                     functions={
+                        "AVERAGE": lambda *args: sum(args) / len(args),
+                        "COUNT": lambda *args: len(args),
+                        "SUM": lambda *args: sum(args),
+                        "MOD": lambda x, y: x % y,
+                        "ROUND": lambda x, y: round(x, y),
+                        "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
+                        "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
+                        "LOG": lambda x, b: math.log(x, b),
+                        "MIN": lambda *args: min(args),
+                        "MAX": lambda *args: max(args),
+                        "MINUS": lambda x, y: x - y,
                         "MULTIPLY": lambda x, y: x * y,
-                        "ADD": lambda x, y: x + y,
-                        "SUBTRACT": lambda x, y: x - y,
                         "DIVIDE": lambda x, y: x / y,
-                        "MODULO": lambda x, y: x % y,
                         "POWER": lambda x, y: x**y,
                         "SQRT": lambda x: x**0.5,
                     },
