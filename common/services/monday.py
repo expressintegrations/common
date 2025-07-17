@@ -103,6 +103,12 @@ class MondayService(BaseService):
 
     async def close(self) -> None:
         await self.httpx_client.aclose()
+        if (
+            hasattr(self, "_shared_session")
+            and self._shared_session
+            and not self._shared_session.closed
+        ):
+            await self._shared_session.close()
 
     async def __aenter__(self) -> "MondayService":
         return self
@@ -989,17 +995,29 @@ class MondayService(BaseService):
         for attempt in range(max_retries + 1):
             session = None
             try:
+                # Create session and ensure it's properly initialized
                 session = aiohttp.ClientSession(
                     timeout=timeout,
                     connector=connector,
                     raise_for_status=True,
                 )
+
+                # Create the async Monday client
                 async_monday_client = AsyncMondayClient(
                     token=self.access_token,
                     session=session,
                 )
+
+                # Execute the operation
                 result = await operation(async_monday_client)
-                await session.close()
+
+                # Ensure all operations are complete before closing
+                await asyncio.sleep(0.1)
+
+                # Close the session properly
+                if session and not session.closed:
+                    await session.close()
+
                 return result
 
             except (
@@ -1007,16 +1025,102 @@ class MondayService(BaseService):
                 aiohttp.ServerDisconnectedError,
                 asyncio.TimeoutError,
                 ConnectionResetError,
+                RuntimeError,
             ) as e:
                 last_exception = e
 
+                # Log the error for debugging
+                self.logger.log_error(f"Session error on attempt {attempt + 1}: {e}")
+
                 if attempt == max_retries:
-                    if session:
-                        await session.close()
+                    if session and not session.closed:
+                        try:
+                            await session.close()
+                        except Exception as close_error:
+                            self.logger.log_error(
+                                f"Error closing session: {close_error}"
+                            )
                     raise e
 
-                if session:
-                    await session.close()
+                # Clean up session on retry
+                if session and not session.closed:
+                    try:
+                        await session.close()
+                    except Exception as close_error:
+                        self.logger.log_error(
+                            f"Error closing session on retry: {close_error}"
+                        )
+
+                delay = min(2**attempt, 10)
+                await asyncio.sleep(delay)
+
+        raise last_exception
+
+    async def _execute_with_shared_session(self, operation, max_retries=3):
+        """Alternative implementation using a more robust session management approach"""
+        if (
+            not hasattr(self, "_shared_session")
+            or self._shared_session is None
+            or self._shared_session.closed
+        ):
+            timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+            connector = aiohttp.TCPConnector(
+                limit=10,
+                limit_per_host=5,
+                keepalive_timeout=30,
+                enable_cleanup_closed=True,
+            )
+            self._shared_session = aiohttp.ClientSession(
+                timeout=timeout,
+                connector=connector,
+                raise_for_status=True,
+            )
+
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                async_monday_client = AsyncMondayClient(
+                    token=self.access_token,
+                    session=self._shared_session,
+                )
+
+                result = await operation(async_monday_client)
+                return result
+
+            except (
+                aiohttp.ClientError,
+                aiohttp.ServerDisconnectedError,
+                asyncio.TimeoutError,
+                ConnectionResetError,
+                RuntimeError,
+            ) as e:
+                last_exception = e
+
+                # If we get a session closed error, recreate the session
+                if "Session is closed" in str(e):
+                    try:
+                        await self._shared_session.close()
+                    except:
+                        pass
+                    self._shared_session = None
+
+                    # Recreate session for next attempt
+                    timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+                    connector = aiohttp.TCPConnector(
+                        limit=10,
+                        limit_per_host=5,
+                        keepalive_timeout=30,
+                        enable_cleanup_closed=True,
+                    )
+                    self._shared_session = aiohttp.ClientSession(
+                        timeout=timeout,
+                        connector=connector,
+                        raise_for_status=True,
+                    )
+
+                if attempt == max_retries:
+                    raise e
 
                 delay = min(2**attempt, 10)
                 await asyncio.sleep(delay)
@@ -1028,7 +1132,7 @@ class MondayService(BaseService):
             data = await client.users.get_me()
             return Me.model_validate(data["data"]["me"])
 
-        return await self._execute_with_session(operation)
+        return await self._execute_with_shared_session(operation)
 
     async def create_webhook_async(
         self, board_id, url, event, column_id=None
@@ -1045,7 +1149,7 @@ class MondayService(BaseService):
 
             return WebhookResponse.model_validate(response["data"]["create_webhook"])
 
-        return await self._execute_with_session(operation)
+        return await self._execute_with_shared_session(operation)
 
     async def get_item_with_column_values_async(
         self, item_id, return_type="list"
@@ -1063,7 +1167,7 @@ class MondayService(BaseService):
             else:
                 return column_values
 
-        return await self._execute_with_session(operation)
+        return await self._execute_with_shared_session(operation)
 
     async def get_boards_async(
         self,
@@ -1086,7 +1190,7 @@ class MondayService(BaseService):
                 page=page if page is not None else 1,
             )
 
-        return await self._execute_with_session(operation)
+        return await self._execute_with_shared_session(operation)
 
     async def get_board_columns_async(self, board_id) -> List[BoardColumn]:
         response = await self.get_boards_async(ids=board_id)
@@ -1124,7 +1228,7 @@ class MondayService(BaseService):
                 Complexity.model_validate(response["data"]["complexity"]),
             )
 
-        return await self._execute_with_session(operation)
+        return await self._execute_with_shared_session(operation)
 
 
 def _get_item_query_without_updates(
