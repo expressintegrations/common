@@ -213,7 +213,7 @@ class SnowflakeService(BaseService):
                 f"{c['name']} {c['type']}" for c in column_definitions
             )
             self.execute(
-                query=f"CREATE OR REPLACE TABLE {database}.{schema}.{table} ({snowflake_column_definitions});",
+                query=f"CREATE OR REPLACE TABLE IF NOT EXISTS {database}.{schema}.{table} ({snowflake_column_definitions});",
                 keep_alive=True,
             )
         else:
