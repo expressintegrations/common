@@ -1,6 +1,8 @@
 import json
 import re
 import httpx
+import aiohttp
+import asyncio
 from httpx_retries import RetryTransport, Retry
 from datetime import datetime, timezone, timedelta
 from typing import List, Tuple, Dict, Any
@@ -969,24 +971,59 @@ class MondayService(BaseService):
 
     ###### ASYNC METHODS ######
 
+    async def _execute_with_session(self, operation, max_retries=3):
+        """Execute an operation with session management and retry logic"""
+        timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+        connector = aiohttp.TCPConnector(
+            limit=10,
+            limit_per_host=5,
+            keepalive_timeout=30,
+            enable_cleanup_closed=True,
+        )
+
+        last_exception = None
+
+        for attempt in range(max_retries + 1):
+            try:
+                async with aiohttp.ClientSession(
+                    timeout=timeout,
+                    connector=connector,
+                    raise_for_status=True,
+                ) as session:
+                    async_monday_client = AsyncMondayClient(
+                        token=self.access_token,
+                        session=session,
+                    )
+                    return await operation(async_monday_client)
+
+            except (
+                aiohttp.ClientError,
+                aiohttp.ServerDisconnectedError,
+                asyncio.TimeoutError,
+                ConnectionResetError,
+            ) as e:
+                last_exception = e
+
+                if attempt == max_retries:
+                    raise e
+
+                delay = min(2**attempt, 10)
+                await asyncio.sleep(delay)
+
+        raise last_exception
+
     async def get_self_async(self) -> Me:
-        async with ClientSession() as session:
-            async_monday_client = AsyncMondayClient(
-                token=self.access_token,
-                session=session,
-            )
-            data = await async_monday_client.users.get_me()
+        async def operation(client):
+            data = await client.users.get_me()
             return Me.model_validate(data["data"]["me"])
+
+        return await self._execute_with_session(operation)
 
     async def create_webhook_async(
         self, board_id, url, event, column_id=None
     ) -> WebhookResponse:
-        async with ClientSession() as session:
-            async_monday_client = AsyncMondayClient(
-                token=self.access_token,
-                session=session,
-            )
-            response = await async_monday_client.webhooks.create_webhook(
+        async def operation(client):
+            response = await client.webhooks.create_webhook(
                 board_id=board_id,
                 url=url,
                 event=event,
@@ -997,26 +1034,25 @@ class MondayService(BaseService):
 
             return WebhookResponse.model_validate(response["data"]["create_webhook"])
 
+        return await self._execute_with_session(operation)
+
     async def get_item_with_column_values_async(
         self, item_id, return_type="list"
     ) -> List[ColumnValue] | Dict[str, ColumnValue]:
-        async with ClientSession() as session:
-            async_monday_client = AsyncMondayClient(
-                token=self.access_token,
-                session=session,
-            )
-            response = await async_monday_client.items.get_items_by_id(
+        async def operation(client):
+            response = await client.items.get_items_by_id(
                 ids=[item_id],
             )
             item = response["data"]["items"][0]
             column_values = self.parse_item_column_values(item)
-
             if return_type == "list":
                 return column_values
             elif return_type == "dict":
                 return {v.id: v for v in column_values}
             else:
                 return column_values
+
+        return await self._execute_with_session(operation)
 
     async def get_boards_async(
         self,
@@ -1028,12 +1064,8 @@ class MondayService(BaseService):
         limit: int | None = None,
         page: int | None = None,
     ):
-        async with ClientSession() as session:
-            async_monday_client = AsyncMondayClient(
-                token=self.access_token,
-                session=session,
-            )
-            return await async_monday_client.boards.get_boards(
+        async def operation(client):
+            return await client.boards.get_boards(
                 ids=ids if ids is not None else [],
                 board_kind=board_kind,
                 state=state if state is not None else State.ACTIVE,
@@ -1042,6 +1074,8 @@ class MondayService(BaseService):
                 limit=limit if limit is not None else 25,
                 page=page if page is not None else 1,
             )
+
+        return await self._execute_with_session(operation)
 
     async def get_board_columns_async(self, board_id) -> List[BoardColumn]:
         response = await self.get_boards_async(ids=board_id)
@@ -1060,13 +1094,8 @@ class MondayService(BaseService):
         limit: int = 100,
         cursor: str | None = None,
     ) -> Tuple[List[List[ColumnValue]], str | None, Complexity]:
-        async with ClientSession() as session:
-            async_monday_client = AsyncMondayClient(
-                token=self.access_token,
-                session=session,
-            )
-
-            response = await async_monday_client.items.get_items_by_board(
+        async def operation(client):
+            response = await client.items.get_items_by_board(
                 board_ids=board_id,
                 limit=limit,
                 cursor=cursor,
@@ -1074,15 +1103,17 @@ class MondayService(BaseService):
             )
             items_page = response["data"]["boards"][0]["items_page"]
             items = items_page["items"]
-            cursor = items_page["cursor"]
+            next_cursor = items_page["cursor"]
             items_with_column_values = [
                 self.parse_item_column_values(item) for item in items
             ]
             return (
                 items_with_column_values,
-                cursor,
+                next_cursor,
                 Complexity.model_validate(response["data"]["complexity"]),
             )
+
+        return await self._execute_with_session(operation)
 
 
 def _get_item_query_without_updates(
