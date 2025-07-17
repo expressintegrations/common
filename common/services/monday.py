@@ -27,6 +27,7 @@ from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from aiohttp import ClientSession
 import statistics
 from simpleeval import simple_eval
+import math
 
 
 class ApiError(Exception):
@@ -581,11 +582,19 @@ class MondayService(BaseService):
                 column["value"] = simple_eval(
                     formula,
                     functions={
+                        "AVERAGE": lambda *args: sum(args) / len(args),
+                        "COUNT": lambda *args: len(args),
+                        "SUM": lambda *args: sum(args),
+                        "MOD": lambda x, y: x % y,
+                        "ROUND": lambda x, y: round(x, y),
+                        "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
+                        "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
+                        "LOG": lambda x, b: math.log(x, b),
+                        "MIN": lambda *args: min(args),
+                        "MAX": lambda *args: max(args),
+                        "MINUS": lambda x, y: x - y,
                         "MULTIPLY": lambda x, y: x * y,
-                        "ADD": lambda x, y: x + y,
-                        "SUBTRACT": lambda x, y: x - y,
                         "DIVIDE": lambda x, y: x / y,
-                        "MODULO": lambda x, y: x % y,
                         "POWER": lambda x, y: x**y,
                         "SQRT": lambda x: x**0.5,
                     },
