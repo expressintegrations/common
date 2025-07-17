@@ -573,7 +573,7 @@ class MondayService(BaseService):
                 )
                 replacement_value = formula_column_value["value"]
                 if formula_column_value["type"] == "mirror":
-                    replacement_value = formula_column_value["value"]["value"]
+                    replacement_value = formula_column_value["value"]["display_value"]
                 if formula_column_value["type"] == "numbers" and not replacement_value:
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
@@ -623,7 +623,7 @@ class MondayService(BaseService):
                     float(v.strip()) for v in values if v.strip()
                 )
             column["value"] = {
-                "value": evaluated_value,
+                "display_value": evaluated_value,
                 "mirrored_items": column.get("mirrored_items", []),
             }
         else:
