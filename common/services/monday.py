@@ -28,6 +28,7 @@ from aiohttp import ClientSession
 import statistics
 from simpleeval import simple_eval
 import math
+from common.models.monday.api.queries import Complexity
 
 
 class ApiError(Exception):
@@ -1016,7 +1017,7 @@ class MondayService(BaseService):
         board_id,
         limit: int = 100,
         cursor: str | None = None,
-    ) -> Tuple[List[List[ColumnValue]], str | None]:
+    ) -> Tuple[List[List[ColumnValue]], str | None, Complexity]:
         async with ClientSession() as session:
             async_monday_client = AsyncMondayClient(
                 token=self.access_token,
@@ -1027,6 +1028,7 @@ class MondayService(BaseService):
                 board_ids=board_id,
                 limit=limit,
                 cursor=cursor,
+                with_complexity=True,
             )
             items_page = response["data"]["boards"][0]["items_page"]
             items = items_page["items"]
@@ -1034,7 +1036,11 @@ class MondayService(BaseService):
             items_with_column_values = [
                 self.parse_item_column_values(item) for item in items
             ]
-            return items_with_column_values, cursor
+            return (
+                items_with_column_values,
+                cursor,
+                Complexity.model_validate(response["data"]["complexity"]),
+            )
 
 
 def _get_item_query_without_updates(
