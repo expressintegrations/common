@@ -576,9 +576,35 @@ class MondayService(BaseService):
                 replacement_value = formula_column_value["value"]
                 if formula_column_value["type"] == "mirror":
                     replacement_value = formula_column_value["value"]["display_value"]
-                if replacement_value is None or replacement_value == "":
+                elif formula_column_value["type"] == "text":
+                    if not (
+                        replacement_value.startswith('"')
+                        and replacement_value.endswith('"')
+                    ):
+                        replacement_value = f'"{replacement_value}"'
+
+                if replacement_value in [None, "", "null"]:
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
+
+            # The IF function needs to make sure the condition uses double equals instead of single equals
+            formula = formula.replace(" = ", " == ")
+
+            # We also see patterns like IF(['Net'] == 'Net', 1, 0), which should evaluate to 1 even though the comparison is between a list and a string
+            def remove_single_element_brackets(expression):
+                # Pattern to match single-element lists like ['content'] or ["content"]
+                pattern = r"\[(['\"])([^,\]]*?)\1\]"
+
+                def replace_match(match):
+                    quote = match.group(1)  # ' or "
+                    content = match.group(2)  # the content inside
+                    return (
+                        f"{quote}{content}{quote}"  # Return just 'content' or "content"
+                    )
+
+                return re.sub(pattern, replace_match, expression)
+
+            formula = remove_single_element_brackets(formula)
             try:
                 format_map = {
                     "$#,##0.00": "${:,.2f}",
@@ -669,6 +695,12 @@ class MondayService(BaseService):
 
                     raise ValueError(f"Unable to parse date: {date_text}")
 
+                def if_func(condition, true_value, false_value):
+                    if condition:
+                        return true_value
+                    else:
+                        return false_value
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -687,9 +719,7 @@ class MondayService(BaseService):
                         "DIVIDE": lambda x, y: x / y,
                         "POWER": lambda x, y: x**y,
                         "SQRT": lambda x: x**0.5,
-                        "IF": lambda condition, true_value, false_value: true_value
-                        if condition
-                        else false_value,
+                        "IF": if_func,
                         "SWITCH": switch_func,
                         "TEXT": lambda x, y: format_map[y].format(
                             float(x) if "#" in y else int(float(x))
@@ -771,7 +801,19 @@ class MondayService(BaseService):
                     },
                 )
             except Exception as e:
-                self.logger.error(f"Error evaluating formula ({formula}): {e}")
+                if "float division by zero" in str(e):
+                    column["value"] = 0
+                else:
+                    self.logger.error(
+                        f"Error evaluating formula ({formula}): {e}",
+                        labels={
+                            "formula": formula,
+                            "column_name": column["column"]["title"],
+                            "column_value": formula_column_value,
+                            "replacement_value": replacement_value,
+                            "settings_str": column["column"].get("settings_str"),
+                        },
+                    )
 
         elif column["type"] == "mirror":
             settings_str = column["column"].get("settings_str") or "{}"
