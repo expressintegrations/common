@@ -599,7 +599,7 @@ class MondayService(BaseService):
             # Settings string example: "{\"relation_column\":{\"subitems\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"4154746971\":[\"numeric_mkpy9ap3\"]},\"function\":\"sum\"}"
             # If the function is a math function, we need to apply it to the values of the mirrored items
             function = settings.get("function")
-            evaluated_value = column["display_value"]
+            evaluated_value = column.get("display_value")
             if function == "sum":
                 values = column["display_value"].split(", ")
                 evaluated_value = sum(float(v.strip()) for v in values if v.strip())
@@ -624,7 +624,7 @@ class MondayService(BaseService):
                 )
             column["value"] = {
                 "value": evaluated_value,
-                "mirrored_items": column["mirrored_items"],
+                "mirrored_items": column.get("mirrored_items", []),
             }
         else:
             column["value"] = column["text"]
