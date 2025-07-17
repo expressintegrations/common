@@ -25,6 +25,8 @@ from common.services.constants import (
 from monday_async import AsyncMondayClient
 from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from aiohttp import ClientSession
+import statistics
+from simpleeval import simple_eval
 
 
 class ApiError(Exception):
@@ -460,16 +462,15 @@ class MondayService(BaseService):
             create_labels_if_missing=True,
         )
 
-    @staticmethod
-    def parse_value(column):
-        def add_text(item, text):
-            item["text"] = re.sub(r"\\*\'", "\\'", text)
-            return item
+    def parse_value(self, column: dict, column_values_by_column_id: dict):
+        def add_text(col, text):
+            col["text"] = re.sub(r"\\*\'", "\\'", text)
+            return col
 
         if (
             not column["value"]
             and (column["text"] == "" or column["text"] is None)
-            and column["type"] not in ["votes"]
+            and column["type"] not in ["votes", "formula", "mirror"]
         ):
             return column
         if is_json(column["value"]):
@@ -482,7 +483,10 @@ class MondayService(BaseService):
             else:
                 column["value"] = 0
         elif column["type"] == "checkbox":
-            column["value"] = str(column["value"]["checked"]) == "true"
+            if "checked" in column:
+                column["value"] = column["checked"]
+            else:
+                column["value"] = str(column["value"]["checked"]) == "true"
         elif column["type"] == "date":
             if "time" in column["value"] and column["value"]["time"]:
                 date_time_str = f"{column['value']['date']} {column['value']['time']}"
@@ -536,13 +540,90 @@ class MondayService(BaseService):
         elif column["type"] in ["duration", "integration"]:
             # keep the column value as an object
             pass
+        elif column["type"] == "formula":
+            column["value"] = column["display_value"]
+            if column["display_value"] != "null":
+                return column
+            # This means the formula probably failed due to a mirror column being used in the formula
+            # We need to parse the settings string to understand how to fix it
+            settings_str = column["column"].get("settings_str")
+            if not settings_str:
+                return column
+
+            settings_str = json.loads(settings_str)
+            # Settings string example: "{\"formula\":\"{numeric_mksy5jn0}-{lookup_mksyak9f}\"}"
+            formula = settings_str.get("formula")
+            if not formula:
+                return column
+
+            # Find all column names in the formula
+            column_names = re.findall(r"\{(\w+)\}", formula)
+            if not column_names:
+                return column
+
+            # Replace the column names with the values
+            for column_name in column_names:
+                formula_column = column_values_by_column_id.get(column_name)
+                if not formula_column:
+                    # If any column name is not found, the formula is invalid
+                    return column
+
+                formula_column_value = self.parse_value(
+                    formula_column, column_values_by_column_id
+                )
+                replacement_value = formula_column_value["value"]
+                if formula_column_value["type"] == "mirror":
+                    replacement_value = formula_column_value["value"]["value"]
+                if formula_column_value["type"] == "numbers" and not replacement_value:
+                    replacement_value = 0
+                formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
+            try:
+                column["value"] = simple_eval(formula)
+            except Exception as e:
+                self.logger.error(f"Error evaluating formula: {e}")
+
+        elif column["type"] == "mirror":
+            settings_str = json.loads(column["column"].get("settings_str"))
+            # Settings string example: "{\"relation_column\":{\"subitems\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"4154746971\":[\"numeric_mkpy9ap3\"]},\"function\":\"sum\"}"
+            # If the function is a math function, we need to apply it to the values of the mirrored items
+            function = settings_str.get("function")
+            evaluated_value = column["display_value"]
+            if function == "sum":
+                values = column["display_value"].split(", ")
+                evaluated_value = sum(float(v.strip()) for v in values if v.strip())
+            elif function == "average":
+                values = column["display_value"].split(", ")
+                evaluated_value = sum(
+                    float(v.strip()) for v in values if v.strip()
+                ) / len(values)
+            elif function == "min":
+                values = column["display_value"].split(", ")
+                evaluated_value = min(float(v.strip()) for v in values if v.strip())
+            elif function == "max":
+                values = column["display_value"].split(", ")
+                evaluated_value = max(float(v.strip()) for v in values if v.strip())
+            elif function == "count":
+                values = column["display_value"].split(", ")
+                evaluated_value = len(values)
+            elif function == "median":
+                values = column["display_value"].split(", ")
+                evaluated_value = statistics.median(
+                    float(v.strip()) for v in values if v.strip()
+                )
+            column["value"] = {
+                "value": evaluated_value,
+                "mirrored_items": column["mirrored_items"],
+            }
         else:
             column["value"] = column["text"]
         return column
 
     def parse_item_column_values(self, item) -> List[ColumnValue]:
+        column_values_by_column_id = {}
+        for v in item["column_values"]:
+            column_values_by_column_id[v["id"]] = v
         column_values = [
-            ColumnValue.model_validate(self.parse_value(v))
+            ColumnValue.model_validate(self.parse_value(v, column_values_by_column_id))
             for v in item["column_values"]
             if v["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
         ]
@@ -738,6 +819,31 @@ class MondayService(BaseService):
 
         columns.insert(0, BoardColumn(id="id", title="Item ID", type="pulse-id"))
         return columns
+
+    async def get_items_with_column_values_async(
+        self,
+        board_id,
+        limit: int = 100,
+        cursor: str | None = None,
+    ) -> Tuple[List[List[ColumnValue]], str | None]:
+        async with ClientSession() as session:
+            async_monday_client = AsyncMondayClient(
+                token=self.access_token,
+                session=session,
+            )
+
+            response = await async_monday_client.items.get_items_by_board(
+                board_ids=board_id,
+                limit=limit,
+                cursor=cursor,
+            )
+            items_page = response["data"]["boards"][0]["items_page"]
+            items = items_page["items"]
+            cursor = items_page["cursor"]
+            items_with_column_values = [
+                self.parse_item_column_values(item) for item in items
+            ]
+            return items_with_column_values, cursor
 
 
 def _get_item_query_without_updates(
