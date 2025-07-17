@@ -574,7 +574,7 @@ class MondayService(BaseService):
                 replacement_value = formula_column_value["value"]
                 if formula_column_value["type"] == "mirror":
                     replacement_value = formula_column_value["value"]["display_value"]
-                if formula_column_value["type"] == "numbers" and not replacement_value:
+                if replacement_value is None or replacement_value == "":
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
             try:
