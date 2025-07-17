@@ -579,18 +579,21 @@ class MondayService(BaseService):
                 if formula_column_value["type"] == "mirror":
                     replacement_value = formula_column_value["value"]["display_value"]
                 elif formula_column_value["type"] == "text":
-                    if not (
-                        replacement_value.startswith('"')
-                        and replacement_value.endswith('"')
-                    ):
-                        replacement_value = f'"{replacement_value}"'
+                    replacement_value = f'\\"{replacement_value}\\"'
 
                 if replacement_value in [None, "", "null"]:
                     replacement_value = 0
-                formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
+                formula = formula.replace(
+                    f"{{{column_name}}}#Labels", str(replacement_value)
+                ).replace(f"{{{column_name}}}", str(replacement_value))
 
             # The IF function needs to make sure the condition uses double equals instead of single equals
-            formula = formula.replace(" = ", " == ")
+            formula = (
+                formula.replace("=", "==")
+                .replace("<==", "<=")
+                .replace(">==", ">=")
+                .replace("!==", "!=")
+            )
 
             # We also see patterns like IF(['Net'] == 'Net', 1, 0), which should evaluate to 1 even though the comparison is between a list and a string
             def remove_single_element_brackets(expression):
