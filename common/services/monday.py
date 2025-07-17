@@ -578,7 +578,18 @@ class MondayService(BaseService):
                     replacement_value = 0
                 formula = formula.replace(f"{{{column_name}}}", str(replacement_value))
             try:
-                column["value"] = simple_eval(formula)
+                column["value"] = simple_eval(
+                    formula,
+                    functions={
+                        "MULTIPLY": lambda x, y: x * y,
+                        "ADD": lambda x, y: x + y,
+                        "SUBTRACT": lambda x, y: x - y,
+                        "DIVIDE": lambda x, y: x / y,
+                        "MODULO": lambda x, y: x % y,
+                        "POWER": lambda x, y: x**y,
+                        "SQRT": lambda x: x**0.5,
+                    },
+                )
             except Exception as e:
                 self.logger.error(f"Error evaluating formula: {e}")
 
