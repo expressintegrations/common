@@ -57,8 +57,8 @@ class ColumnValue(BaseModel):
     country: Optional[Country] = None
 
     # For column type "address"
-    lat: Optional[str] = None
-    lng: Optional[str] = None
+    lat: Optional[float] = None
+    lng: Optional[float] = None
     address: Optional[str] = None
 
     # For column type "progress"
