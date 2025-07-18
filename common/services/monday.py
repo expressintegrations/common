@@ -1065,7 +1065,7 @@ class MondayService(BaseService):
 
         raise last_exception
 
-    async def _execute_with_shared_session(self, operation, max_retries=3):
+    async def _execute_with_shared_session(self, operation, max_retries=10):
         """Alternative implementation using a more robust session management approach"""
         if (
             not hasattr(self, "_shared_session")
