@@ -712,6 +712,11 @@ class MondayService(BaseService):
                     else:
                         return false_value
 
+                def month_func(date):
+                    if not isinstance(date, str):
+                        return 0
+                    return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").month
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -765,9 +770,7 @@ class MondayService(BaseService):
                         "YEAR": lambda date: datetime.strptime(
                             date, "%Y-%m-%d %H:%M:%S"
                         ).year,
-                        "MONTH": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).month,
+                        "MONTH": month_func,
                         "WEEKNUM": lambda date: datetime.strptime(
                             date, "%Y-%m-%d %H:%M:%S"
                         ).isocalendar()[1],
