@@ -836,25 +836,31 @@ class MondayService(BaseService):
             # If the function is a math function, we need to apply it to the values of the mirrored items
             function = settings.get("function")
             evaluated_value = column.get("display_value")
-            if function == "sum":
-                values = column["display_value"].split(", ")
+            # First make sure the values are numbers by making sure there are no other characters besides numbers, spaces, and commas
+            values = evaluated_value.split(", ")
+            values = [v.strip() for v in values if v.strip()]
+            values = [v for v in values if v.replace(".", "").isdigit()]
+            if not values:
+                evaluated_value = 0
+            elif function == "sum":
+                values = evaluated_value.split(", ")
                 evaluated_value = sum(float(v.strip()) for v in values if v.strip())
             elif function == "average":
-                values = column["display_value"].split(", ")
+                values = evaluated_value.split(", ")
                 evaluated_value = sum(
                     float(v.strip()) for v in values if v.strip()
                 ) / len(values)
             elif function == "min":
-                values = column["display_value"].split(", ")
+                values = evaluated_value.split(", ")
                 evaluated_value = min(float(v.strip()) for v in values if v.strip())
             elif function == "max":
-                values = column["display_value"].split(", ")
+                values = evaluated_value.split(", ")
                 evaluated_value = max(float(v.strip()) for v in values if v.strip())
             elif function == "count":
-                values = column["display_value"].split(", ")
+                values = evaluated_value.split(", ")
                 evaluated_value = len(values)
             elif function == "median":
-                values = column["display_value"].split(", ")
+                values = evaluated_value.split(", ")
                 evaluated_value = statistics.median(
                     float(v.strip()) for v in values if v.strip()
                 )
