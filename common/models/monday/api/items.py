@@ -10,7 +10,6 @@ class ColumnDetails(BaseModel):
 
 class LinkedItem(BaseModel):
     id: str
-    name: str
 
 
 class MirroredItem(BaseModel):
