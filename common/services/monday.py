@@ -982,7 +982,7 @@ class MondayService(BaseService):
 
     async def _execute_with_session(self, operation, max_retries=3):
         """Execute an operation with session management and retry logic"""
-        timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+        timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
         connector = aiohttp.TCPConnector(
             limit=10,
             limit_per_host=5,
@@ -1063,7 +1063,7 @@ class MondayService(BaseService):
             or self._shared_session is None
             or self._shared_session.closed
         ):
-            timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+            timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
             connector = aiohttp.TCPConnector(
                 limit=10,
                 limit_per_host=5,
@@ -1097,6 +1097,9 @@ class MondayService(BaseService):
             ) as e:
                 last_exception = e
 
+                # Log the error for debugging
+                self.logger.log_error(f"Session error on attempt {attempt + 1}: {e}")
+
                 # If we get a session closed error, recreate the session
                 if "Session is closed" in str(e):
                     try:
@@ -1106,7 +1109,7 @@ class MondayService(BaseService):
                     self._shared_session = None
 
                     # Recreate session for next attempt
-                    timeout = aiohttp.ClientTimeout(total=30, connect=5, sock_read=10)
+                    timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
                     connector = aiohttp.TCPConnector(
                         limit=10,
                         limit_per_host=5,
