@@ -21,6 +21,7 @@ class LoadMondayDataRequest(BaseModel):
     snowflake_key_column: str
     columns_with_snowflake_definitions: List[BoardColumnWithSnowflakeDefinition]
     items: List[List[ColumnValue]]
+    csv_file_path: str | None = None
 
 
 class LoadMondayBoardActivityRequest(BaseModel):
