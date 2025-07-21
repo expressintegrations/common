@@ -52,3 +52,8 @@ class StorageService(BaseService):
         bucket = self.storage_client.bucket(bucket_name=bucket_name)
         blob = bucket.blob(source_file_name)
         return blob.download_to_string()
+
+    def delete_file(self, bucket_name: str, file_name: str) -> None:
+        bucket = self.storage_client.bucket(bucket_name=bucket_name)
+        blob = bucket.blob(file_name)
+        blob.delete()
