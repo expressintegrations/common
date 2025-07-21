@@ -18,6 +18,10 @@ class StorageService(BaseService):
         blob = bucket.blob(destination_file_name)
         blob.upload_from_string(contents)
 
+    def get_storage_blob(self, bucket_name: str, file_name: str) -> storage.Blob:
+        bucket = self.storage_client.bucket(bucket_name=bucket_name)
+        return bucket.blob(file_name)
+
     def download_file(
         self, bucket_name: str, source_file_name: str, destination_file_name: str
     ):
