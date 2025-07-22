@@ -28,7 +28,7 @@ setup(
         "pytz",
         "PyYAML==6.0.1",
         "requests==2.32.3",
-        "snowflake-connector-python==3.14.0",
+        "snowflake-connector-python[secure-local-storage]==3.15.0",
         "starlette",
         "stripe==11.5.0",
         "urllib3==2.2.2",
