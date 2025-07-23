@@ -604,31 +604,46 @@ class MondayService(BaseService):
                 return column
 
             # Find all column names in the formula
-            column_names = re.findall(r"\{(\w+)\}", formula)
-            if not column_names:
+            matches = re.findall(r"\{(\w+(#Labels)?)\}", formula)
+            if not matches:
                 return column
 
             # Replace the column names with the values
-            for column_name in column_names:
+            for match in matches:
+                column_name = match[0].replace("#Labels", "")
                 formula_column = column_values_by_column_id.get(column_name)
                 if not formula_column:
-                    # If any column name is not found, the formula is invalid
-                    return column
+                    raise ValueError(
+                        f"Column {column_name} not found in column values by column id"
+                    )
 
                 formula_column_value = self.parse_value(
-                    formula_column, column_values_by_column_id
+                    formula_column,
+                    column_values_by_column_id,
                 )
                 replacement_value = formula_column_value["value"]
                 if formula_column_value["type"] == "mirror":
                     replacement_value = formula_column_value["value"]["display_value"]
-                elif formula_column_value["type"] == "text":
-                    replacement_value = f'\\"{replacement_value}\\"'
 
                 if replacement_value in [None, "", "null"]:
                     replacement_value = 0
+
+                if isinstance(replacement_value, str):
+                    if replacement_value.isdigit():
+                        replacement_value = int(replacement_value)
+                    elif replacement_value.replace(".", "").isdigit():
+                        replacement_value = float(replacement_value)
+                    elif replacement_value.lower() == "true":
+                        replacement_value = True
+                    elif replacement_value.lower() == "false":
+                        replacement_value = False
+                    elif replacement_value.lower() == "null":
+                        replacement_value = None
+                    else:
+                        replacement_value = f'"{replacement_value}"'
                 formula = formula.replace(
-                    f"{{{column_name}}}#Labels", str(replacement_value)
-                ).replace(f"{{{column_name}}}", str(replacement_value))
+                    f"{{{column_name}}}", str(replacement_value)
+                ).replace(f"{{{column_name}#Labels}}", str(replacement_value))
 
             # The IF function needs to make sure the condition uses double equals instead of single equals
             formula = (
@@ -636,6 +651,7 @@ class MondayService(BaseService):
                 .replace("<==", "<=")
                 .replace(">==", ">=")
                 .replace("!==", "!=")
+                .replace("if(", "IF(")
             )
 
             # We also see patterns like IF(['Net'] == 'Net', 1, 0), which should evaluate to 1 even though the comparison is between a list and a string
@@ -743,7 +759,9 @@ class MondayService(BaseService):
 
                     raise ValueError(f"Unable to parse date: {date_text}")
 
-                def if_func(condition, true_value, false_value):
+                def if_func(
+                    condition: Any, true_value: Any, false_value: Any | None = None
+                ):
                     if condition:
                         return true_value
                     else:
