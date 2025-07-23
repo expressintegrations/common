@@ -26,7 +26,6 @@ from common.services.constants import (
 )
 from monday_async import AsyncMondayClient
 from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
-from aiohttp import ClientSession
 import statistics
 from simpleeval import simple_eval
 import math
@@ -108,7 +107,45 @@ class MondayService(BaseService):
             and self._shared_session
             and not self._shared_session.closed
         ):
-            await self._shared_session.close()
+            try:
+                await self._shared_session.close()
+            except Exception as e:
+                self.logger.log_error(f"Error closing shared session: {e}")
+            finally:
+                self._shared_session = None
+
+    async def cleanup(self) -> None:
+        """Cleanup method to ensure all resources are properly closed"""
+        await self.close()
+
+    def __del__(self):
+        """Destructor to ensure cleanup on garbage collection"""
+        if (
+            hasattr(self, "_shared_session")
+            and self._shared_session
+            and not self._shared_session.closed
+        ):
+            try:
+                # Create a new event loop if none exists
+                try:
+                    loop = asyncio.get_event_loop()
+                    if loop.is_running():
+                        # If loop is running, schedule the cleanup
+                        loop.create_task(self._shared_session.close())
+                    else:
+                        # If loop is not running, run the cleanup
+                        loop.run_until_complete(self._shared_session.close())
+                except RuntimeError:
+                    # No event loop, create one
+                    loop = asyncio.new_event_loop()
+                    asyncio.set_event_loop(loop)
+                    try:
+                        loop.run_until_complete(self._shared_session.close())
+                    finally:
+                        loop.close()
+            except Exception:
+                # Ignore cleanup errors in destructor
+                pass
 
     async def __aenter__(self) -> "MondayService":
         return self
@@ -1072,18 +1109,7 @@ class MondayService(BaseService):
             or self._shared_session is None
             or self._shared_session.closed
         ):
-            timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
-            connector = aiohttp.TCPConnector(
-                limit=10,
-                limit_per_host=5,
-                keepalive_timeout=30,
-                enable_cleanup_closed=True,
-            )
-            self._shared_session = aiohttp.ClientSession(
-                timeout=timeout,
-                connector=connector,
-                raise_for_status=True,
-            )
+            await self._create_shared_session()
 
         last_exception = None
 
@@ -1111,25 +1137,7 @@ class MondayService(BaseService):
 
                 # If we get a session closed error, recreate the session
                 if "Session is closed" in str(e):
-                    try:
-                        await self._shared_session.close()
-                    except:
-                        pass
-                    self._shared_session = None
-
-                    # Recreate session for next attempt
-                    timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
-                    connector = aiohttp.TCPConnector(
-                        limit=10,
-                        limit_per_host=5,
-                        keepalive_timeout=30,
-                        enable_cleanup_closed=True,
-                    )
-                    self._shared_session = aiohttp.ClientSession(
-                        timeout=timeout,
-                        connector=connector,
-                        raise_for_status=True,
-                    )
+                    await self._recreate_shared_session()
 
                 if attempt == max_retries:
                     raise e
@@ -1138,6 +1146,35 @@ class MondayService(BaseService):
                 await asyncio.sleep(delay)
 
         raise last_exception
+
+    async def _create_shared_session(self):
+        """Create a new shared session"""
+        timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
+        connector = aiohttp.TCPConnector(
+            limit=10,
+            limit_per_host=5,
+            keepalive_timeout=30,
+            enable_cleanup_closed=True,
+        )
+        self._shared_session = aiohttp.ClientSession(
+            timeout=timeout,
+            connector=connector,
+            raise_for_status=True,
+        )
+
+    async def _recreate_shared_session(self):
+        """Recreate the shared session after closing the old one"""
+        if (
+            hasattr(self, "_shared_session")
+            and self._shared_session
+            and not self._shared_session.closed
+        ):
+            try:
+                await self._shared_session.close()
+            except Exception as e:
+                self.logger.log_error(f"Error closing old shared session: {e}")
+
+        await self._create_shared_session()
 
     async def get_self_async(self) -> Me:
         async def operation(client):
