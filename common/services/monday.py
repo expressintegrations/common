@@ -767,7 +767,7 @@ class MondayService(BaseService):
                     if condition:
                         return true_value
                     else:
-                        return false_value
+                        return false_value if false_value is not None else 0
 
                 def month_func(date):
                     if not isinstance(date, str):
