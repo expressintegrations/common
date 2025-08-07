@@ -901,11 +901,8 @@ class MondayService(BaseService):
                 evaluated_value = 0
             elif not function or function == "sum":
                 values = evaluated_value.split(", ")
-                evaluated_value = sum(
-                    float(v.strip())
-                    for v in values
-                    if v.strip() and v.strip().replace(".", "").isdigit()
-                )
+                if all([v.strip().replace(".", "").isdigit() for v in values]):
+                    evaluated_value = sum(float(v.strip()) for v in values)
             elif function == "average":
                 values = evaluated_value.split(", ")
                 evaluated_value = sum(
