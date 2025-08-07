@@ -669,6 +669,8 @@ class MondayService(BaseService):
                 return re.sub(pattern, replace_match, expression)
 
             formula = remove_single_element_brackets(formula)
+            formula_column_value = ""
+            replacement_value = ""
             try:
                 format_map = {
                     "$#,##0.00": "${:,.2f}",
@@ -890,14 +892,14 @@ class MondayService(BaseService):
             # Settings string example: "{\"relation_column\":{\"subitems\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"4154746971\":[\"numeric_mkpy9ap3\"]},\"function\":\"sum\"}"
             # If the function is a math function, we need to apply it to the values of the mirrored items
             function = settings.get("function")
-            evaluated_value = column.get("display_value")
+            evaluated_value = str(column.get("display_value"))
             # First make sure the values are numbers by making sure there are no other characters besides numbers, spaces, and commas
             values = evaluated_value.split(", ")
             values = [v.strip() for v in values if v.strip()]
             values = [v for v in values if v.replace(".", "").isdigit()]
             if not values:
                 evaluated_value = 0
-            elif function == "sum":
+            elif not function or function == "sum":
                 values = evaluated_value.split(", ")
                 evaluated_value = sum(float(v.strip()) for v in values if v.strip())
             elif function == "average":
@@ -1118,9 +1120,10 @@ class MondayService(BaseService):
                 delay = min(2**attempt, 10)
                 await asyncio.sleep(delay)
 
-        raise last_exception
+        if last_exception:
+            raise last_exception
 
-    async def _execute_with_shared_session(self, operation, max_retries=10):
+    async def _execute_with_shared_session(self, operation, max_retries=10) -> Any:
         """Alternative implementation using a more robust session management approach"""
         if (
             not hasattr(self, "_shared_session")
@@ -1163,7 +1166,8 @@ class MondayService(BaseService):
                 delay = min(2**attempt, 10)
                 await asyncio.sleep(delay)
 
-        raise last_exception
+        if last_exception:
+            raise last_exception
 
     async def _create_shared_session(self):
         """Create a new shared session"""
