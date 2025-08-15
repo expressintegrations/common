@@ -774,6 +774,12 @@ class MondayService(BaseService):
                         return 0
                     return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").month
 
+                def round_func(x, d):
+                    try:
+                        return round(x, d)
+                    except Exception:
+                        return 0
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -781,7 +787,7 @@ class MondayService(BaseService):
                         "COUNT": lambda *args: len(args),
                         "SUM": lambda *args: sum(args),
                         "MOD": lambda x, y: x % y,
-                        "ROUND": lambda x, y: round(x, y),
+                        "ROUND": round_func,
                         "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
                         "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
                         "LOG": lambda x, b: math.log(x, b),
