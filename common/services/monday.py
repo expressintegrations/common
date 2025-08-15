@@ -780,6 +780,11 @@ class MondayService(BaseService):
                     except Exception:
                         return 0
 
+                def year_func(date):
+                    if not isinstance(date, str):
+                        return 0
+                    return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").year
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -830,9 +835,7 @@ class MondayService(BaseService):
                         "FORMAT_DATE": lambda date, format_str: datetime.strptime(
                             date, format_str
                         ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "YEAR": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).year,
+                        "YEAR": year_func,
                         "MONTH": month_func,
                         "WEEKNUM": lambda date: datetime.strptime(
                             date, "%Y-%m-%d %H:%M:%S"
