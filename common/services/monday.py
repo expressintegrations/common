@@ -51,7 +51,7 @@ class MondayService(BaseService):
         self.access_token = access_token
         self.monday_client = MondayClient(token=access_token)
         self.retry_policy = Retry(
-            total=3,
+            total=30,
             backoff_factor=0.5,
             status_forcelist=[429, 503, 504],
         )
@@ -1056,7 +1056,7 @@ class MondayService(BaseService):
 
     ###### ASYNC METHODS ######
 
-    async def _execute_with_session(self, operation, max_retries=3):
+    async def _execute_with_session(self, operation, max_retries=30):
         """Execute an operation with session management and retry logic"""
         timeout = aiohttp.ClientTimeout(total=120, connect=10, sock_read=60)
         connector = aiohttp.TCPConnector(
@@ -1127,13 +1127,13 @@ class MondayService(BaseService):
                             f"Error closing session on retry: {close_error}"
                         )
 
-                delay = min(2**attempt, 10)
+                delay = min(2**attempt, 30)
                 await asyncio.sleep(delay)
 
         if last_exception:
             raise last_exception
 
-    async def _execute_with_shared_session(self, operation, max_retries=10) -> Any:
+    async def _execute_with_shared_session(self, operation, max_retries=30) -> Any:
         """Alternative implementation using a more robust session management approach"""
         if (
             not hasattr(self, "_shared_session")
@@ -1173,7 +1173,7 @@ class MondayService(BaseService):
                 if attempt == max_retries:
                     raise e
 
-                delay = min(2**attempt, 10)
+                delay = min(2**attempt, 30)
                 await asyncio.sleep(delay)
 
         if last_exception:
