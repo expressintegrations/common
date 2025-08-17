@@ -5,7 +5,7 @@ from typing import Union
 from google.api_core.exceptions import NotFound
 from google.cloud import tasks_v2
 from google.cloud.tasks_v2 import Queue, RateLimits, RetryConfig, Task
-from google.protobuf import timestamp_pb2
+from google.protobuf import duration_pb2, timestamp_pb2
 
 from common.logging.client import Logger
 from common.services.base import BaseService
@@ -40,6 +40,7 @@ class CloudTasksService(BaseService):
         in_seconds: int = None,
         base_url: str = None,
         service_account: str = None,
+        deadline_in_seconds: int | None = None,
     ) -> Task:
         parent = self.cloud_tasks_client.queue_path(self.project, self.location, queue)
 
@@ -92,6 +93,12 @@ class CloudTasksService(BaseService):
 
             # Add the timestamp to the tasks.
             task["schedule_time"] = timestamp
+
+        if deadline_in_seconds is not None:
+            duration = duration_pb2.Duration()
+            duration.FromSeconds(deadline_in_seconds)
+            task["dispatch_deadline"] = duration
+
         request = {"parent": parent, "task": task}
         return self.cloud_tasks_client.create_task(request=request)
 
