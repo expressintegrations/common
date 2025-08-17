@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from google.api_core.exceptions import NotFound
 from google.cloud import tasks_v2
 from google.cloud.tasks_v2 import Queue, RateLimits, RetryConfig, Task
-from google.protobuf import timestamp_pb2
+from google.protobuf import duration_pb2, timestamp_pb2
 
 from common.cloud_tasks.models.tasks import OidcTokenConfig
 from common.logging.client import Logger
@@ -117,6 +117,7 @@ class CloudTasksService:
         in_seconds: int | None = None,
         oidc_token_config: OidcTokenConfig | None = None,
         headers: dict[str, str] | None = None,
+        deadline_in_seconds: int | None = None,
     ) -> Task:
         """Enqueues a task in the specified queue with correlation ID propagation."""
         parent = self.cloud_tasks_client.queue_path(self.project, self.location, queue)
@@ -162,6 +163,11 @@ class CloudTasksService:
                 "seconds": timestamp.seconds,
                 "nanos": timestamp.nanos,
             }
+
+        if deadline_in_seconds is not None:
+            duration = duration_pb2.Duration()
+            duration.FromSeconds(deadline_in_seconds)
+            task["dispatch_deadline"] = duration
 
         return self.cloud_tasks_client.create_task(
             request={"parent": parent, "task": task}
