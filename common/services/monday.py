@@ -1198,6 +1198,15 @@ class MondayService(BaseService):
 
     async def get_board_columns_async(self, board_id) -> List[BoardColumn]:
         response = await self.get_boards_async(ids=board_id)
+        if not response["data"]["boards"]:
+            self.logger.log_error(
+                f"Board {board_id} not found",
+                labels={
+                    "board_id": board_id,
+                    "response": json.dumps(response),
+                },
+            )
+            raise Exception(f"Board {board_id} not found")
         columns = [
             BoardColumn.model_validate(c)
             for c in response["data"]["boards"][0]["columns"]
