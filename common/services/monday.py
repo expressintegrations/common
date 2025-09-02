@@ -1267,7 +1267,55 @@ class MondayService(BaseService):
                 cursor = items_page["cursor"]
                 if not cursor:
                     break
+
+                complexity = Complexity.model_validate(response["data"]["complexity"])
+                if complexity.after - complexity.query <= 0:
+                    self.logger.log_info(
+                        f"Sleeping for {complexity.reset_in_x_seconds + 1} seconds",
+                        labels={
+                            "complexity": json.dumps(complexity.model_dump()),
+                        },
+                    )
+                    await asyncio.sleep(complexity.reset_in_x_seconds + 1)
             return list(item_ids)
+
+        return await self._execute_with_shared_session(operation)
+
+    async def create_item_async(
+        self,
+        board_id: int,
+        item_name: str,
+        column_values: dict | None = None,
+        group_id: str | None = None,
+        with_complexity: bool = False,
+    ) -> dict:
+        async def operation(client: AsyncMondayClient):
+            response = await client.items.create_item(
+                board_id=board_id,
+                item_name=item_name,
+                group_id=group_id,
+                column_values=column_values,
+                with_complexity=with_complexity,
+            )
+            return response
+
+        return await self._execute_with_shared_session(operation)
+
+    async def update_item_async(
+        self,
+        board_id: int,
+        item_id: str,
+        column_values: dict,
+        with_complexity: bool = False,
+    ) -> dict:
+        async def operation(client: AsyncMondayClient):
+            response = await client.items.change_multiple_item_column_values(
+                board_id=board_id,
+                item_id=item_id,
+                column_values=column_values,
+                with_complexity=with_complexity,
+            )
+            return response
 
         return await self._execute_with_shared_session(operation)
 
