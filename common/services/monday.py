@@ -882,7 +882,7 @@ class MondayService(BaseService):
                     },
                 )
             except Exception as e:
-                if "float division by zero" in str(e):
+                if "division by zero" in str(e):
                     column["value"] = 0
                 else:
                     self.logger.error(
