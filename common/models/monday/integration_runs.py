@@ -1,8 +1,10 @@
-from typing import Any
+from typing import Any, List
 from typing import Optional
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
+
+from common.models.monday.api.boards import BoardColumn
 
 
 class Reference(BaseModel):
@@ -38,6 +40,8 @@ class IntegrationRun(BaseModel):
     inbound_field_values: Optional[InboundFieldValues] = None
     account_id: Optional[int] = None
     user_id: Optional[int] = None
+    # This is a non-standard field to avoid making extra calls to the API
+    board_columns: Optional[List[BoardColumn]] = None
 
     class Config:
         populate_by_name = True
