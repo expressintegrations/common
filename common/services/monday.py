@@ -26,6 +26,7 @@ from common.services.constants import (
 )
 from monday_async import AsyncMondayClient
 from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
+from monday_async.types.args import QueryParams
 import statistics
 from simpleeval import simple_eval
 import math
@@ -1240,6 +1241,33 @@ class MondayService(BaseService):
                 next_cursor,
                 Complexity.model_validate(response["data"]["complexity"]),
             )
+
+        return await self._execute_with_shared_session(operation)
+
+    async def get_item_ids_by_column_value_async(
+        self, board_id, column_id, column_value
+    ) -> List[str]:
+        async def operation(client: AsyncMondayClient):
+            item_ids = set()
+            cursor = None
+            query_params = QueryParams()
+            query_params.add_rule(column_id=column_id, compare_value=column_value)
+            while True:
+                response = await client.items.get_items_by_board(
+                    board_ids=board_id,
+                    query_params=query_params,
+                    limit=100,
+                    cursor=cursor,
+                    with_complexity=True,
+                    with_column_values=False,
+                )
+                items_page = response["data"]["boards"][0]["items_page"]
+                items = items_page["items"]
+                item_ids.update([item["id"] for item in items])
+                cursor = items_page["cursor"]
+                if not cursor:
+                    break
+            return list(item_ids)
 
         return await self._execute_with_shared_session(operation)
 
