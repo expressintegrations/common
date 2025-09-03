@@ -15,9 +15,9 @@ class Reference(BaseModel):
 
 
 class SchedulerType(str, Enum):
-    DAILY = 'Daily'
-    WEEKLY = 'Weekly'
-    MONTHLY = 'Monthly'
+    DAILY = "Daily"
+    WEEKLY = "Weekly"
+    MONTHLY = "Monthly"
 
 
 class SchedulerConfig(BaseModel):
@@ -63,3 +63,4 @@ class MondayIntegration(Model):
     last_successful_run_at: Optional[datetime] = None
     installation_id: Optional[str] = None
     initial_run_completed: Optional[bool] = False
+    field_map: Optional[dict[str, str]] = None
