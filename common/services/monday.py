@@ -794,6 +794,7 @@ class MondayService(BaseService):
                         "SUM": lambda *args: sum(args),
                         "MOD": lambda x, y: x % y,
                         "ROUND": round_func,
+                        "round": round_func,
                         "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
                         "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
                         "LOG": lambda x, b: math.log(x, b),
