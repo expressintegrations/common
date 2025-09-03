@@ -27,6 +27,7 @@ class InboundFieldValues(BaseModel):
     row: Optional[dict] = None
     workspace: Optional[Reference] = None
     item_values: Optional[dict] = None
+    field_map: Optional[str] = None
 
     class Config:
         populate_by_name = True
