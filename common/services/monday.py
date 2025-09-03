@@ -4,7 +4,7 @@ import httpx
 import aiohttp
 import asyncio
 from httpx_retries import RetryTransport, Retry
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone, timedelta, date
 from typing import List, Tuple, Dict, Any
 
 from monday import MondayClient
@@ -786,6 +786,13 @@ class MondayService(BaseService):
                         return 0
                     return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").year
 
+                def days_func(start_date, end_date):
+                    if not isinstance(start_date, str) or not isinstance(end_date, str):
+                        return 0
+                    start_date = date.fromisoformat(start_date)
+                    end_date = date.fromisoformat(end_date)
+                    return (end_date - start_date).days
+
                 column["value"] = simple_eval(
                     formula,
                     functions={
@@ -829,9 +836,7 @@ class MondayService(BaseService):
                         "TRUE": lambda: True,
                         "FALSE": lambda: False,
                         "DATE": lambda y, m, d: datetime(y, m, d).strftime("%Y-%m-%d"),
-                        "DAYS": lambda start_date, end_date: (
-                            end_date - start_date
-                        ).days,
+                        "DAYS": days_func,
                         "WORKDAYS": workdays_func,
                         "TODAY": lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         "FORMAT_DATE": lambda date, format_str: datetime.strptime(
