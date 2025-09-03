@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from google.api_core.exceptions import NotFound
 from google.cloud import tasks_v2
+from google.cloud.tasks_v2.types.cloudtasks import ListTasksRequest
 from google.cloud.tasks_v2 import Queue, RateLimits, RetryConfig, Task
 from google.protobuf import duration_pb2, timestamp_pb2
 
@@ -206,3 +207,42 @@ class CloudTasksService:
             return self.cloud_tasks_client.delete_queue(name=queue_path)
         except NotFound:
             return None
+
+    def find_tasks_by_target_contains(self, queue: str, target_uri: str) -> list[Task]:
+        """Find all tasks in the specified queue that contain the target URI."""
+        queue_path = self.cloud_tasks_client.queue_path(
+            self.project, self.location, queue
+        )
+
+        # Use the pager which automatically handles pagination
+        tasks_pager = self.cloud_tasks_client.list_tasks(
+            request=ListTasksRequest(
+                parent=queue_path,
+                response_view=tasks_v2.Task.View.FULL,
+            ),
+        )
+
+        # Iterate over all tasks (pager handles pagination automatically)
+        matching_tasks = []
+        for task in tasks_pager:
+            if target_uri in task.http_request.url:
+                matching_tasks.append(task)
+
+        return matching_tasks
+
+    def find_all_tasks(self, queue: str) -> list[Task]:
+        """Find all tasks in the specified queue."""
+        queue_path = self.cloud_tasks_client.queue_path(
+            self.project, self.location, queue
+        )
+
+        # Use the pager which automatically handles pagination
+        tasks_pager = self.cloud_tasks_client.list_tasks(
+            request=ListTasksRequest(
+                parent=queue_path,
+                response_view=tasks_v2.Task.View.FULL,
+            ),
+        )
+
+        # Convert pager to list (pager handles pagination automatically)
+        return list(tasks_pager)
