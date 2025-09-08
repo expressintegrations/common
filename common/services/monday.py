@@ -703,8 +703,12 @@ class MondayService(BaseService):
                         return 0
                     # Convert strings to datetime if needed
                     if isinstance(to_date, str):
+                        if to_date.isdigit():
+                            return 0
                         to_date = datetime.strptime(to_date, "%Y-%m-%d")
                     if isinstance(from_date, str):
+                        if from_date.isdigit():
+                            return 0
                         from_date = datetime.strptime(from_date, "%Y-%m-%d")
 
                     # Ensure start is before end
@@ -723,8 +727,12 @@ class MondayService(BaseService):
                     return working_days
 
                 def workday_func(start_date, num_days):
+                    if isinstance(start_date, int) or isinstance(num_days, int):
+                        return 0
                     # Convert string to datetime if needed
                     if isinstance(start_date, str):
+                        if start_date.isdigit():
+                            return 0
                         start_date = datetime.strptime(start_date, "%Y-%m-%d")
 
                     current_date = start_date
