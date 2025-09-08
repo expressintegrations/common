@@ -807,6 +807,7 @@ class MondayService(BaseService):
                 column["value"] = simple_eval(
                     formula,
                     functions={
+                        "ABS": lambda x: abs(x),
                         "AVERAGE": lambda *args: sum(args) / len(args),
                         "COUNT": lambda *args: len(args),
                         "SUM": lambda *args: sum(args),
@@ -823,7 +824,11 @@ class MondayService(BaseService):
                         "DIVIDE": lambda x, y: x / y,
                         "POWER": lambda x, y: x**y,
                         "SQRT": lambda x: x**0.5,
+                        "AND": lambda *args: all(args),
                         "IF": if_func,
+                        "EXACT": lambda x, y: x == y,
+                        "OR": lambda *args: any(args),
+                        "XOR": lambda *args: any(args) and not all(args),
                         "SWITCH": switch_func,
                         "TEXT": lambda x, y: format_map[y].format(
                             float(x) if "#" in y else int(float(x))
