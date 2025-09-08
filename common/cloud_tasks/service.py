@@ -1,5 +1,6 @@
 """Service for interacting with Google Cloud Tasks."""
 
+import decimal
 import json
 from datetime import UTC, datetime, timedelta
 from urllib.parse import urlparse
@@ -21,6 +22,13 @@ def is_valid_url(url_string: str) -> bool:
         return all([result.scheme, result.netloc])
     except ValueError:
         return False
+
+
+class DecimalEncoder(json.JSONEncoder):
+    def default(self, o):
+        if isinstance(o, decimal.Decimal):
+            return str(o)
+        return super().default(o)
 
 
 class CloudTasksService:
@@ -146,7 +154,7 @@ class CloudTasksService:
 
         if payload is not None:
             task["http_request"]["body"] = (
-                json.dumps(payload).encode()
+                json.dumps(payload, cls=DecimalEncoder).encode()
                 if isinstance(payload, (dict, list))
                 else payload.encode()
             )
