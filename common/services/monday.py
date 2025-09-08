@@ -27,6 +27,7 @@ from common.services.constants import (
 from monday_async import AsyncMondayClient
 from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from monday_async.types.args import QueryParams
+from monday_async.types.enum_values import ColumnType
 import statistics
 from simpleeval import simple_eval
 import math
@@ -1104,7 +1105,7 @@ class MondayService(BaseService):
                 last_exception = e
 
                 # Log the error for debugging
-                self.logger.log_error(f"Session error on attempt {attempt + 1}: {e}")
+                self.logger.warning(f"Session error on attempt {attempt + 1}: {e}")
 
                 # If we get a session closed error, recreate the session
                 if "Session is closed" in str(e):
@@ -1341,6 +1342,32 @@ class MondayService(BaseService):
                 column_values=column_values,
                 with_complexity=with_complexity,
                 create_labels_if_missing=True,
+            )
+            return response
+
+        return await self._execute_with_shared_session(operation)
+
+    async def create_column_async(
+        self,
+        board_id: int,
+        title: str,
+        column_type: ColumnType,
+        description: str | None = None,
+        defaults: dict | None = None,
+        column_id: str | None = None,
+        after_column_id: str | None = None,
+        with_complexity: bool = False,
+    ):
+        async def operation(client: AsyncMondayClient):
+            response = await client.columns.create_column(
+                board_id=board_id,
+                title=title,
+                column_type=column_type,
+                description=description,
+                defaults=defaults,
+                column_id=column_id,
+                after_column_id=after_column_id,
+                with_complexity=with_complexity,
             )
             return response
 
