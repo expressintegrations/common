@@ -699,6 +699,8 @@ class MondayService(BaseService):
                     return default
 
                 def workdays_func(to_date, from_date):
+                    if isinstance(to_date, int) or isinstance(from_date, int):
+                        return 0
                     # Convert strings to datetime if needed
                     if isinstance(to_date, str):
                         to_date = datetime.strptime(to_date, "%Y-%m-%d")
