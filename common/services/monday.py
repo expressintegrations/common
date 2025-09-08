@@ -1160,19 +1160,16 @@ class MondayService(BaseService):
         self, board_id, url, event, column_id=None
     ) -> WebhookResponse:
         async def operation(client):
-            async with client:
-                response = await client.webhooks.create_webhook(
-                    board_id=board_id,
-                    url=url,
-                    event=event,
-                    config={"columnId": column_id} if column_id else None,
-                )
-                if "data" not in response:
-                    raise Exception(f"Failed to create webhook: {response}")
+            response = await client.webhooks.create_webhook(
+                board_id=board_id,
+                url=url,
+                event=event,
+                config={"columnId": column_id} if column_id else None,
+            )
+            if "data" not in response:
+                raise Exception(f"Failed to create webhook: {response}")
 
-                return WebhookResponse.model_validate(
-                    response["data"]["create_webhook"]
-                )
+            return WebhookResponse.model_validate(response["data"]["create_webhook"])
 
         return await self._execute_with_shared_session(operation)
 
@@ -1180,18 +1177,17 @@ class MondayService(BaseService):
         self, item_id, return_type="list"
     ) -> List[ColumnValue] | Dict[str, ColumnValue]:
         async def operation(client):
-            async with client:
-                response = await client.items.get_items_by_id(
-                    ids=[item_id],
-                )
-                item = response["data"]["items"][0]
-                column_values = self.parse_item_column_values(item)
-                if return_type == "list":
-                    return column_values
-                elif return_type == "dict":
-                    return {v.id: v for v in column_values}
-                else:
-                    return column_values
+            response = await client.items.get_items_by_id(
+                ids=[item_id],
+            )
+            item = response["data"]["items"][0]
+            column_values = self.parse_item_column_values(item)
+            if return_type == "list":
+                return column_values
+            elif return_type == "dict":
+                return {v.id: v for v in column_values}
+            else:
+                return column_values
 
         return await self._execute_with_shared_session(operation)
 
@@ -1206,16 +1202,15 @@ class MondayService(BaseService):
         page: int | None = None,
     ):
         async def operation(client):
-            async with client:
-                return await client.boards.get_boards(
-                    ids=ids if ids is not None else [],
-                    board_kind=board_kind,
-                    state=state if state is not None else State.ACTIVE,
-                    workspace_ids=workspace_ids if workspace_ids is not None else [],
-                    order_by=order_by,
-                    limit=limit if limit is not None else 25,
-                    page=page if page is not None else 1,
-                )
+            return await client.boards.get_boards(
+                ids=ids if ids is not None else [],
+                board_kind=board_kind,
+                state=state if state is not None else State.ACTIVE,
+                workspace_ids=workspace_ids if workspace_ids is not None else [],
+                order_by=order_by,
+                limit=limit if limit is not None else 25,
+                page=page if page is not None else 1,
+            )
 
         return await self._execute_with_shared_session(operation)
 
@@ -1247,33 +1242,32 @@ class MondayService(BaseService):
         cursor: str | None = None,
     ) -> Tuple[List[Item], str | None, Complexity]:
         async def operation(client: AsyncMondayClient):
-            async with client:
-                response = await client.custom.execute_custom_query(
-                    custom_query=get_items_by_board_query(
-                        board_ids=board_id,
-                        query_params=query_params if cursor is None else None,
-                        limit=limit,
-                        cursor=cursor,
-                        with_complexity=True,
-                    )
+            response = await client.custom.execute_custom_query(
+                custom_query=get_items_by_board_query(
+                    board_ids=board_id,
+                    query_params=query_params if cursor is None else None,
+                    limit=limit,
+                    cursor=cursor,
+                    with_complexity=True,
                 )
-                items_page = response["data"]["boards"][0]["items_page"]
-                raw_items = items_page["items"]
-                next_cursor = items_page["cursor"]
-                items = []
-                for raw_item in raw_items:
-                    item = Item(
-                        id=raw_item["id"],
-                        name=raw_item["name"],
-                        updated_at=raw_item["updated_at"],
-                        column_values=self.parse_item_column_values(raw_item),
-                    )
-                    items.append(item)
-                return (
-                    items,
-                    next_cursor,
-                    Complexity.model_validate(response["data"]["complexity"]),
+            )
+            items_page = response["data"]["boards"][0]["items_page"]
+            raw_items = items_page["items"]
+            next_cursor = items_page["cursor"]
+            items = []
+            for raw_item in raw_items:
+                item = Item(
+                    id=raw_item["id"],
+                    name=raw_item["name"],
+                    updated_at=raw_item["updated_at"],
+                    column_values=self.parse_item_column_values(raw_item),
                 )
+                items.append(item)
+            return (
+                items,
+                next_cursor,
+                Complexity.model_validate(response["data"]["complexity"]),
+            )
 
         return await self._execute_with_shared_session(operation)
 
@@ -1281,39 +1275,36 @@ class MondayService(BaseService):
         self, board_id, column_id, column_value
     ) -> List[str]:
         async def operation(client: AsyncMondayClient):
-            async with client:
-                item_ids = set()
-                cursor = None
-                query_params = QueryParams()
-                query_params.add_rule(column_id=column_id, compare_value=column_value)
-                while True:
-                    response = await client.items.get_items_by_board(
-                        board_ids=board_id,
-                        query_params=query_params,
-                        limit=100,
-                        cursor=cursor,
-                        with_complexity=True,
-                        with_column_values=False,
-                    )
-                    items_page = response["data"]["boards"][0]["items_page"]
-                    items = items_page["items"]
-                    item_ids.update([item["id"] for item in items])
-                    cursor = items_page["cursor"]
-                    if not cursor:
-                        break
+            item_ids = set()
+            cursor = None
+            query_params = QueryParams()
+            query_params.add_rule(column_id=column_id, compare_value=column_value)
+            while True:
+                response = await client.items.get_items_by_board(
+                    board_ids=board_id,
+                    query_params=query_params,
+                    limit=100,
+                    cursor=cursor,
+                    with_complexity=True,
+                    with_column_values=False,
+                )
+                items_page = response["data"]["boards"][0]["items_page"]
+                items = items_page["items"]
+                item_ids.update([item["id"] for item in items])
+                cursor = items_page["cursor"]
+                if not cursor:
+                    break
 
-                    complexity = Complexity.model_validate(
-                        response["data"]["complexity"]
+                complexity = Complexity.model_validate(response["data"]["complexity"])
+                if complexity.after - complexity.query <= 0:
+                    self.logger.log_info(
+                        f"Sleeping for {complexity.reset_in_x_seconds + 1} seconds",
+                        labels={
+                            "complexity": json.dumps(complexity.model_dump()),
+                        },
                     )
-                    if complexity.after - complexity.query <= 0:
-                        self.logger.log_info(
-                            f"Sleeping for {complexity.reset_in_x_seconds + 1} seconds",
-                            labels={
-                                "complexity": json.dumps(complexity.model_dump()),
-                            },
-                        )
-                        await asyncio.sleep(complexity.reset_in_x_seconds + 1)
-                return list(item_ids)
+                    await asyncio.sleep(complexity.reset_in_x_seconds + 1)
+            return list(item_ids)
 
         return await self._execute_with_shared_session(operation)
 
@@ -1326,15 +1317,14 @@ class MondayService(BaseService):
         with_complexity: bool = False,
     ) -> dict:
         async def operation(client: AsyncMondayClient):
-            async with client:
-                response = await client.items.create_item(
-                    board_id=board_id,
-                    item_name=item_name,
-                    group_id=group_id,
-                    column_values=column_values,
-                    with_complexity=with_complexity,
-                )
-                return response
+            response = await client.items.create_item(
+                board_id=board_id,
+                item_name=item_name,
+                group_id=group_id,
+                column_values=column_values,
+                with_complexity=with_complexity,
+            )
+            return response
 
         return await self._execute_with_shared_session(operation)
 
@@ -1346,15 +1336,14 @@ class MondayService(BaseService):
         with_complexity: bool = False,
     ) -> dict:
         async def operation(client: AsyncMondayClient):
-            async with client:
-                response = await client.items.change_multiple_item_column_values(
-                    board_id=board_id,
-                    item_id=item_id,
-                    column_values=column_values,
-                    with_complexity=with_complexity,
-                    create_labels_if_missing=True,
-                )
-                return response
+            response = await client.items.change_multiple_item_column_values(
+                board_id=board_id,
+                item_id=item_id,
+                column_values=column_values,
+                with_complexity=with_complexity,
+                create_labels_if_missing=True,
+            )
+            return response
 
         return await self._execute_with_shared_session(operation)
 
@@ -1370,18 +1359,17 @@ class MondayService(BaseService):
         with_complexity: bool = False,
     ):
         async def operation(client: AsyncMondayClient):
-            async with client:
-                response = await client.columns.create_column(
-                    board_id=board_id,
-                    title=title,
-                    column_type=column_type,
-                    description=description,
-                    defaults=defaults,
-                    column_id=column_id,
-                    after_column_id=after_column_id,
-                    with_complexity=with_complexity,
-                )
-                return response
+            response = await client.columns.create_column(
+                board_id=board_id,
+                title=title,
+                column_type=column_type,
+                description=description,
+                defaults=defaults,
+                column_id=column_id,
+                after_column_id=after_column_id,
+                with_complexity=with_complexity,
+            )
+            return response
 
         return await self._execute_with_shared_session(operation)
 
