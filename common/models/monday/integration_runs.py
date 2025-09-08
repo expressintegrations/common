@@ -43,6 +43,8 @@ class IntegrationRun(BaseModel):
     user_id: Optional[int] = None
     # This is a non-standard field to avoid making extra calls to the API
     board_columns: Optional[List[BoardColumn]] = None
+    cursor: Optional[str] = None
+    file_name: Optional[str] = None
 
     class Config:
         populate_by_name = True
