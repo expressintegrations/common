@@ -14,7 +14,7 @@ from common.core.utils import is_json
 from common.logging.client import Logger
 from common.models.monday.api.account import Account
 from common.models.monday.api.boards import SimpleBoard, BoardColumn
-from common.models.monday.api.items import ColumnDetails, ColumnValue
+from common.models.monday.api.items import ColumnDetails, ColumnValue, Item
 from common.models.monday.api.me import Me
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
@@ -1236,24 +1236,34 @@ class MondayService(BaseService):
     async def get_items_with_column_values_async(
         self,
         board_id,
+        query_params: QueryParams | None = None,
         limit: int = 100,
         cursor: str | None = None,
-    ) -> Tuple[List[List[ColumnValue]], str | None, Complexity]:
+    ) -> Tuple[List[Item], str | None, Complexity]:
         async def operation(client: AsyncMondayClient):
-            response = await client.items.get_items_by_board(
-                board_ids=board_id,
-                limit=limit,
-                cursor=cursor,
-                with_complexity=True,
+            response = await client.custom.execute_custom_query(
+                custom_query=get_items_by_board_query(
+                    board_ids=board_id,
+                    query_params=query_params if cursor is None else None,
+                    limit=limit,
+                    cursor=cursor,
+                    with_complexity=True,
+                )
             )
             items_page = response["data"]["boards"][0]["items_page"]
-            items = items_page["items"]
+            raw_items = items_page["items"]
             next_cursor = items_page["cursor"]
-            items_with_column_values = [
-                self.parse_item_column_values(item) for item in items
-            ]
+            items = []
+            for raw_item in raw_items:
+                item = Item(
+                    id=raw_item["id"],
+                    name=raw_item["name"],
+                    updated_at=raw_item["updated_at"],
+                    column_values=self.parse_item_column_values(raw_item),
+                )
+                items.append(item)
             return (
-                items_with_column_values,
+                items,
                 next_cursor,
                 Complexity.model_validate(response["data"]["complexity"]),
             )
@@ -1375,3 +1385,79 @@ def _get_item_query_without_updates(
     )
 
     return query
+
+
+def get_items_by_board_query(
+    board_ids: ID | List[ID],
+    query_params: QueryParams | None = None,
+    limit: int = 25,
+    cursor: str | None = None,
+    with_complexity: bool = False,
+) -> str:
+    """
+    This query retrieves items from a specific board, allowing filtering by IDs, sorting, and excluding inactive items.
+    For more information, visit https://developer.monday.com/api-reference/reference/items-page#queries
+
+    Args:
+        board_ids (ID): The ID of the board to retrieve items from.
+
+        query_params (QueryParams): (Optional) A set of parameters to filter, sort,
+            and control the scope of the boards query. Use this to customize the results based on specific criteria.
+            Please note that you can't use query_params and cursor in the same request.
+            We recommend using query_params for the initial request and cursor for paginated requests.
+
+        limit (int): (Optional) The maximum number of items to return. Defaults to 25.
+
+        cursor (str): An opaque cursor that represents the position in the list after the last returned item.
+            Use this cursor for pagination to fetch the next set of items.
+            If the cursor is null, there are no more items to fetch.
+
+        with_complexity (bool): Set to True to return the query's complexity along with the results.
+
+        with_column_values (bool): Set to True to return the items column values along with the results.
+            True by default.
+
+        with_subitems (bool): Set to True to return the items subitems along with the results. False by default.
+
+        with_updates (bool): Set to True to return the items updates along with the results. False by default.
+    """
+    from monday_async.utils.queries.query_addons import (
+        add_complexity,
+        add_column_values,
+    )
+
+    from monday_async.utils.utils import (
+        format_param_value,
+        graphql_parse,
+    )
+
+    # If a cursor is provided setting query_params to None
+    # since you cant use query_params and cursor in the same request.
+    if cursor:
+        query_params = None
+
+    if query_params:
+        query_params_value = f"query_params: {query_params}"
+    else:
+        query_params_value = ""
+
+    query = f"""
+    query {{{add_complexity() if with_complexity else ""}
+        boards (ids: {format_param_value(board_ids)}) {{
+            items_page (
+                limit: {limit},
+                cursor: {format_param_value(cursor)},
+                {query_params_value},
+            ) {{
+                cursor
+                items {{
+                    id
+                    name
+                    {add_column_values()}
+                    updated_at
+                }}
+            }}
+        }}
+    }}
+    """
+    return graphql_parse(query)

@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional, Any, List
 
 from pydantic import BaseModel
@@ -63,3 +64,10 @@ class ColumnValue(BaseModel):
 
     # For column type "progress"
     # Setting string example: "{\"related_columns\":{\"isNormalized\":false,\"columns\":{\"status\":{\"isSelected\":true,\"percentage\":100}}}}"
+
+
+class Item(BaseModel):
+    id: str
+    name: str
+    updated_at: datetime
+    column_values: List[ColumnValue]
