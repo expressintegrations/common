@@ -10,6 +10,7 @@ from cryptography.hazmat.primitives import serialization
 
 from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
+from common.services.constants import SNOWFLAKE_RESERVED_KEYWORDS
 from common.logging.client import Logger
 
 URL_CLOUD_PLATFORMS = [
@@ -138,10 +139,10 @@ class SnowflakeService(BaseService):
         r = requests.post(url, data=data, headers=headers)
         if r.status_code >= 400:
             raise Exception(f"Attempted reauthorization: {r.status_code} {r.text}")
-        r = r.json()
-        if "error" in r:
+        response_json: dict = r.json()
+        if "error" in response_json:
             raise SnowflakeIntegrationException(
-                f"Error: {r['error']}, Message: {r['message']}"
+                f"Error: {response_json['error']}, Message: {response_json['message']}"
             )
         authorization = Authorization.model_validate(r)
         self.access_token = authorization.access_token
@@ -196,6 +197,61 @@ class SnowflakeService(BaseService):
         self.ctx.close()
         self.connected = False
 
+    def _quote_column_name(self, column_name: str) -> str:
+        """Quote column name if it contains special characters or is a reserved word."""
+        # Remove existing quotes if present
+        name = str(column_name).strip('"')
+
+        # Check if the column name needs quoting
+        if (
+            re.search(r"[^a-zA-Z0-9_]", name)  # Contains special chars or spaces
+            or name[0].isdigit()  # Starts with digit
+            or name.upper() in SNOWFLAKE_RESERVED_KEYWORDS
+        ):  # Is a reserved keyword
+            return f'"{name}"'
+        return name
+
+    def _types_are_equivalent(self, snowflake_type: str, expected_type: str) -> bool:
+        """Check if Snowflake type and expected type are equivalent."""
+        sf_type = snowflake_type.upper()
+        exp_type = expected_type.upper()
+        
+        # Direct match
+        if sf_type == exp_type:
+            return True
+            
+        # String types - all equivalent
+        string_types = {"VARCHAR", "CHAR", "CHARACTER", "STRING", "TEXT"}
+        if sf_type in string_types and exp_type in string_types:
+            return True
+            
+        # Numeric types - Snowflake uses FIXED internally for most numeric types
+        if sf_type == "FIXED":
+            numeric_types = {"NUMBER", "DECIMAL", "NUMERIC", "INT", "INTEGER", 
+                           "BIGINT", "SMALLINT", "TINYINT", "BYTEINT"}
+            if any(exp_type.startswith(t) for t in numeric_types):
+                return True
+                
+        # Float types - Snowflake displays as FLOAT but stores as DOUBLE
+        if sf_type in {"FLOAT", "DOUBLE"}:
+            float_types = {"FLOAT", "FLOAT4", "FLOAT8", "DOUBLE", "DOUBLE PRECISION", "REAL"}
+            if exp_type in float_types:
+                return True
+                
+        # Binary types
+        if sf_type == "BINARY" and exp_type == "VARBINARY":
+            return True
+        if sf_type == "VARBINARY" and exp_type == "BINARY":
+            return True
+            
+        # Timestamp types
+        if sf_type == "TIMESTAMP_NTZ" and exp_type in {"TIMESTAMP", "DATETIME"}:
+            return True
+        if sf_type == "TIMESTAMP" and exp_type in {"TIMESTAMP_NTZ", "DATETIME"}:
+            return True
+            
+        return False
+
     def replicate_table_schema(
         self,
         database: str,
@@ -210,7 +266,8 @@ class SnowflakeService(BaseService):
         )
         if table.strip().lower() not in [row[1].strip().lower() for row in rows]:
             snowflake_column_definitions = ", ".join(
-                f"{c['name']} {c['type']}" for c in column_definitions
+                f"{self._quote_column_name(c['name'])} {c['type']}"
+                for c in column_definitions
             )
             self.logger.info(
                 f"Creating table {database}.{schema}.{table}",
@@ -237,18 +294,41 @@ class SnowflakeService(BaseService):
                 str(c["name"]).lower().strip('"') for c in column_definitions
             ]
 
+            self.logger.info(
+                f"Column mapping debug for {database}.{schema}.{table}",
+                labels={
+                    "column_definitions_map_keys": str(
+                        list(column_definitions_map.keys())
+                    ),
+                    "current_column_names": str(
+                        [str(c[2]).lower().strip('"') for c in current_columns]
+                    ),
+                    "new_column_names": str(new_column_names),
+                },
+            )
+
             # Step 1 - Add missing columns by name
             current_column_names = [str(c[2]).lower() for c in current_columns]
             columns_to_add = [
-                f"{str(c['name']).lower()} {c['type']}"
+                f"{self._quote_column_name(c['name'])} {c['type']}"
                 for c in column_definitions
                 if str(c["name"]).lower().strip('"') not in current_column_names
             ]
-            for c in columns_to_add:
-                self.execute(
-                    query=f"ALTER TABLE {database}.{schema}.{table} ADD COLUMN {c};",
-                    keep_alive=True,
+            if columns_to_add:
+                self.logger.info(
+                    f"Adding columns to {database}.{schema}.{table}",
+                    labels={
+                        "database": database,
+                        "schema": schema,
+                        "table": table,
+                        "columns_to_add": str(columns_to_add),
+                    },
                 )
+                for c in columns_to_add:
+                    self.execute(
+                        query=f"ALTER TABLE {database}.{schema}.{table} ADD COLUMN {c};",
+                        keep_alive=True,
+                    )
 
             # Step 2 - Drop deleted columns
             columns_to_drop = [
@@ -256,34 +336,91 @@ class SnowflakeService(BaseService):
                 for c in current_columns
                 if str(c[2].lower()) not in new_column_names
             ]
-            for c in columns_to_drop:
-                self.execute(
-                    query=f"ALTER TABLE {database}.{schema}.{table} DROP COLUMN {c};",
-                    keep_alive=True,
+            if columns_to_drop:
+                self.logger.info(
+                    f"Dropping columns from {database}.{schema}.{table}",
+                    labels={
+                        "database": database,
+                        "schema": schema,
+                        "table": table,
+                        "columns_to_drop": str(columns_to_drop),
+                    },
                 )
+                for c in columns_to_drop:
+                    self.execute(
+                        query=f"ALTER TABLE {database}.{schema}.{table} DROP COLUMN {self._quote_column_name(c)};",
+                        keep_alive=True,
+                    )
 
             # Step 3 - Drop and re-add columns that changed type
+            # Debug type comparison
+            type_comparisons = []
+            for c in current_columns:
+                col_name_key = str(c[2]).lower().strip('"')
+                if col_name_key in column_definitions_map:
+                    current_type = json.loads(c[3])["type"]
+                    expected_type = column_definitions_map[col_name_key]["type"]
+                    types_match = self._types_are_equivalent(current_type, expected_type)
+                    type_comparisons.append(
+                        {
+                            "column": col_name_key,
+                            "current_type": current_type,
+                            "expected_type": expected_type,
+                            "match": types_match,
+                        }
+                    )
+
+            self.logger.info(
+                f"Type comparison debug for {database}.{schema}.{table}",
+                labels={
+                    "type_comparisons": str(type_comparisons),
+                },
+            )
+
             columns_to_drop_retype = [
                 str(c[2]).lower()
                 for c in current_columns
-                if json.loads(c[3])["type"]
-                != column_definitions_map[c[2].lower()]["type"]
-            ]
-            for c in columns_to_drop_retype:
-                self.execute(
-                    query=f"ALTER TABLE {database}.{schema}.{table} DROP COLUMN {c};",
-                    keep_alive=True,
+                if str(c[2]).lower().strip('"') in column_definitions_map
+                and not self._types_are_equivalent(
+                    json.loads(c[3])["type"],
+                    column_definitions_map[str(c[2]).lower().strip('"')]["type"]
                 )
+            ]
+            if columns_to_drop_retype:
+                self.logger.info(
+                    f"Dropping and re-adding columns from {database}.{schema}.{table}",
+                    labels={
+                        "database": database,
+                        "schema": schema,
+                        "table": table,
+                        "columns_to_drop_retype": str(columns_to_drop_retype),
+                    },
+                )
+                for c in columns_to_drop_retype:
+                    self.execute(
+                        query=f"ALTER TABLE {database}.{schema}.{table} DROP COLUMN {self._quote_column_name(c)};",
+                        keep_alive=True,
+                    )
 
             columns_to_add_retype = [
-                f"{c['name']} {c['type']}"
+                f"{self._quote_column_name(c['name'])} {c['type']}"
                 for c in column_definitions
                 if str(c["name"]).lower().strip('"') in columns_to_drop_retype
             ]
-            for c in columns_to_add_retype:
-                self.execute(
-                    query=f"ALTER TABLE {database}.{schema}.{table} ADD COLUMN {c};",
-                    keep_alive=True,
+            if columns_to_add_retype:
+                self.logger.info(
+                    f"Adding columns to {database}.{schema}.{table}",
+                    labels={
+                        "database": database,
+                        "schema": schema,
+                        "table": table,
+                        "columns_to_add_retype": str(columns_to_add_retype),
+                    },
                 )
+                for c in columns_to_add_retype:
+                    self.execute(
+                        query=f"ALTER TABLE {database}.{schema}.{table} ADD COLUMN {c};",
+                        keep_alive=True,
+                    )
         if not keep_alive:
             self.close()
