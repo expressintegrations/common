@@ -233,14 +233,16 @@ class SnowflakeService(BaseService):
             column_definitions_map = {
                 str(c["name"]).lower(): c for c in column_definitions
             }
-            new_column_names = [str(c["name"]).lower() for c in column_definitions]
+            new_column_names = [
+                str(c["name"]).lower().strip('"') for c in column_definitions
+            ]
 
             # Step 1 - Add missing columns by name
             current_column_names = [str(c[2]).lower() for c in current_columns]
             columns_to_add = [
                 f"{str(c['name']).lower()} {c['type']}"
                 for c in column_definitions
-                if str(c["name"]).lower() not in current_column_names
+                if str(c["name"]).lower().strip('"') not in current_column_names
             ]
             for c in columns_to_add:
                 self.execute(
@@ -276,7 +278,7 @@ class SnowflakeService(BaseService):
             columns_to_add_retype = [
                 f"{c['name']} {c['type']}"
                 for c in column_definitions
-                if str(c["name"]).lower() in columns_to_drop_retype
+                if str(c["name"]).lower().strip('"') in columns_to_drop_retype
             ]
             for c in columns_to_add_retype:
                 self.execute(
