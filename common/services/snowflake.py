@@ -231,7 +231,7 @@ class SnowflakeService(BaseService):
                 keep_alive=True,
             )
             column_definitions_map = {
-                str(c["name"]).lower(): c for c in column_definitions
+                str(c["name"]).lower().strip('"'): c for c in column_definitions
             }
             new_column_names = [
                 str(c["name"]).lower().strip('"') for c in column_definitions
