@@ -208,9 +208,18 @@ class SnowflakeService(BaseService):
         rows = self.get_rows(
             query=f"show tables in schema {database}.{schema};", keep_alive=True
         )
-        if table not in [row[1] for row in rows]:
+        if table.strip().lower() not in [row[1].strip().lower() for row in rows]:
             snowflake_column_definitions = ", ".join(
                 f"{c['name']} {c['type']}" for c in column_definitions
+            )
+            self.logger.info(
+                f"Creating table {database}.{schema}.{table}",
+                labels={
+                    "database": database,
+                    "schema": schema,
+                    "table": table,
+                    "snowflake_column_definitions": snowflake_column_definitions,
+                },
             )
             self.execute(
                 query=f"CREATE OR REPLACE TABLE {database}.{schema}.{table} ({snowflake_column_definitions});",
