@@ -144,7 +144,7 @@ class SnowflakeService(BaseService):
             raise SnowflakeIntegrationException(
                 f"Error: {response_json['error']}, Message: {response_json['message']}"
             )
-        authorization = Authorization.model_validate(r)
+        authorization = Authorization.model_validate(response_json)
         self.access_token = authorization.access_token
         return authorization
 
