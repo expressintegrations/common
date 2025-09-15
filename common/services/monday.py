@@ -33,6 +33,16 @@ from simpleeval import simple_eval
 import math
 from common.models.monday.api.queries import Complexity
 
+from monday_async.utils.queries.query_addons import (
+    add_complexity,
+    add_column_values,
+)
+
+from monday_async.utils.utils import (
+    format_param_value,
+    graphql_parse,
+)
+
 
 class ApiError(Exception):
     def __init__(self, url: str, status_code: int, message: str) -> None:
@@ -209,6 +219,8 @@ class MondayService(BaseService):
         ]
         if len(data["app_subscription"]) > 0:
             return Subscription.model_validate(data["app_subscription"][0])
+
+        return None
 
     def get_account(self) -> Account:
         query = """
@@ -924,7 +936,7 @@ class MondayService(BaseService):
             # Settings string example: "{\"relation_column\":{\"subitems\":true},\"displayed_column\":{},\"displayed_linked_columns\":{\"4154746971\":[\"numeric_mkpy9ap3\"]},\"function\":\"sum\"}"
             # If the function is a math function, we need to apply it to the values of the mirrored items
             function = settings.get("function")
-            evaluated_value = str(column.get("display_value"))
+            evaluated_value: Any = str(column.get("display_value"))
             # First make sure the values are numbers by making sure there are no other characters besides numbers, spaces, and commas
             values = evaluated_value.split(", ")
             values = [v.strip() for v in values if v.strip()]
@@ -966,24 +978,8 @@ class MondayService(BaseService):
         column_values_by_column_id = {}
         for v in item["column_values"]:
             column_values_by_column_id[v["id"]] = v
-        column_values = [
-            ColumnValue.model_validate(self.parse_value(v, column_values_by_column_id))
-            for v in item["column_values"]
-            if v["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
-        ]
-        # add the name and id columns, as those are not returned by default
-        column_values.insert(
-            0,
-            ColumnValue(
-                id="name",
-                column=ColumnDetails(title="Item Name"),
-                type="name",
-                value=item["name"],
-                text=item["name"],
-            ),
-        )
-        column_values.insert(
-            0,
+
+        base_column_values = [
             ColumnValue(
                 id="id",
                 column=ColumnDetails(title="Item ID"),
@@ -991,8 +987,34 @@ class MondayService(BaseService):
                 value=int(item["id"]),
                 text=item["id"],
             ),
-        )
-        return column_values
+            ColumnValue(
+                id="name",
+                column=ColumnDetails(title="Name"),
+                type="name",
+                value=item["name"],
+                text=item["name"],
+            ),
+            ColumnValue(
+                id="group_id",
+                column=ColumnDetails(title="Group ID"),
+                type="group_id",
+                value=item["group"]["id"],
+                text=item["group"]["id"],
+            ),
+            ColumnValue(
+                id="group_title",
+                column=ColumnDetails(title="Group Title"),
+                type="group_title",
+                value=item["group"]["title"],
+                text=item["group"]["title"],
+            ),
+        ]
+        column_values = [
+            ColumnValue.model_validate(self.parse_value(v, column_values_by_column_id))
+            for v in item["column_values"]
+            if v["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+        ]
+        return base_column_values + column_values
 
     def get_users(self):
         data = self.monday_client.users.fetch_users()["data"]
@@ -1230,14 +1252,19 @@ class MondayService(BaseService):
                 },
             )
             raise Exception(f"Board {board_id} not found")
+
+        base_columns = [
+            BoardColumn(id="id", title="Item ID", type="pulse-id"),
+            BoardColumn(id="name", title="Name", type="text"),
+            BoardColumn(id="group_id", title="Group ID", type="text"),
+            BoardColumn(id="group_title", title="Group Title", type="text"),
+        ]
         columns = [
             BoardColumn.model_validate(c)
             for c in response["data"]["boards"][0]["columns"]
-            if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+            if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES and c["id"] != "name"
         ]
-
-        columns.insert(0, BoardColumn(id="id", title="Item ID", type="pulse-id"))
-        return columns
+        return base_columns + columns
 
     async def get_items_with_column_values_async(
         self,
@@ -1453,15 +1480,6 @@ def get_items_by_board_query(
 
         with_updates (bool): Set to True to return the items updates along with the results. False by default.
     """
-    from monday_async.utils.queries.query_addons import (
-        add_complexity,
-        add_column_values,
-    )
-
-    from monday_async.utils.utils import (
-        format_param_value,
-        graphql_parse,
-    )
 
     # If a cursor is provided setting query_params to None
     # since you cant use query_params and cursor in the same request.
@@ -1485,6 +1503,10 @@ def get_items_by_board_query(
                 items {{
                     id
                     name
+                    group {{
+                        id
+                        title
+                    }}
                     {add_column_values()}
                     updated_at
                 }}
