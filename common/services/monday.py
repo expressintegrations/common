@@ -989,7 +989,7 @@ class MondayService(BaseService):
             ),
             ColumnValue(
                 id="name",
-                column=ColumnDetails(title="Item Name"),
+                column=ColumnDetails(title="Name"),
                 type="name",
                 value=item["name"],
                 text=item["name"],
@@ -1255,14 +1255,14 @@ class MondayService(BaseService):
 
         base_columns = [
             BoardColumn(id="id", title="Item ID", type="pulse-id"),
-            BoardColumn(id="name", title="Item Name", type="name"),
-            BoardColumn(id="group_id", title="Group ID", type="group_id"),
-            BoardColumn(id="group_title", title="Group Title", type="group_title"),
+            BoardColumn(id="name", title="Name", type="text"),
+            BoardColumn(id="group_id", title="Group ID", type="text"),
+            BoardColumn(id="group_title", title="Group Title", type="text"),
         ]
         columns = [
             BoardColumn.model_validate(c)
             for c in response["data"]["boards"][0]["columns"]
-            if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES
+            if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES and c["id"] != "name"
         ]
         return base_columns + columns
 
