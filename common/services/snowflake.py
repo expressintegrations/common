@@ -12,6 +12,7 @@ from common.models.firestore.connections import Authorization
 from common.services.base import BaseService
 from common.services.constants import SNOWFLAKE_RESERVED_KEYWORDS
 from common.logging.client import Logger
+from common.models.snowflake.replication import ReplicationSummary
 
 URL_CLOUD_PLATFORMS = [
     "us-east-1",
@@ -275,7 +276,7 @@ class SnowflakeService(BaseService):
         table: str,
         column_definitions: List,
         keep_alive: bool = False,
-    ):
+    ) -> ReplicationSummary:
         # get the current list of tables to see if the provided one already exists
         rows = self.get_rows(
             query=f"show tables in schema {database}.{schema};", keep_alive=True
@@ -298,6 +299,7 @@ class SnowflakeService(BaseService):
                 query=f"CREATE OR REPLACE TABLE {database}.{schema}.{table} ({snowflake_column_definitions});",
                 keep_alive=True,
             )
+            return ReplicationSummary(columns_added=len(column_definitions))
         else:
             current_columns = self.get_rows(
                 query=f"show columns in table {database}.{schema}.{table};",
@@ -402,3 +404,8 @@ class SnowflakeService(BaseService):
                     )
         if not keep_alive:
             self.close()
+        return ReplicationSummary(
+            columns_added=len(columns_to_add),
+            columns_dropped=len(columns_to_drop),
+            columns_retyped=len(columns_to_add_retype),
+        )
