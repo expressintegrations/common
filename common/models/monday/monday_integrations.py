@@ -7,6 +7,8 @@ from firedantic import Model
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
+from common.models.monday.integration_runs import InboundFieldValues
+
 
 class Reference(BaseModel):
     title: Optional[str] = None
@@ -64,3 +66,5 @@ class MondayIntegration(Model):
     installation_id: Optional[str] = None
     initial_run_completed: Optional[bool] = False
     field_map: Optional[dict[str, str]] = None
+    inbound_field_values: Optional[InboundFieldValues] = None
+    recipe_id: Optional[int] = None
