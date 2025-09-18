@@ -1,3 +1,4 @@
+import ast
 import json
 import re
 import httpx
@@ -29,7 +30,7 @@ from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
 from monday_async.types.args import QueryParams
 from monday_async.types.enum_values import ColumnType
 import statistics
-from simpleeval import simple_eval
+from simpleeval import simple_eval, DEFAULT_OPERATORS
 import math
 from common.models.monday.api.queries import Complexity
 
@@ -659,276 +660,19 @@ class MondayService(BaseService):
                     f"{{{column_name}}}", str(replacement_value)
                 ).replace(f"{{{column_name}#Labels}}", str(replacement_value))
 
-            # The IF function needs to make sure the condition uses double equals instead of single equals
-            formula = (
-                formula.replace("=", "==")
-                .replace("<==", "<=")
-                .replace(">==", ">=")
-                .replace("!==", "!=")
-                .replace("if(", "IF(")
-            )
-
-            # We also see patterns like IF(['Net'] == 'Net', 1, 0), which should evaluate to 1 even though the comparison is between a list and a string
-            def remove_single_element_brackets(expression):
-                # Pattern to match single-element lists like ['content'] or ["content"]
-                pattern = r"\[(['\"])([^,\]]*?)\1\]"
-
-                def replace_match(match):
-                    quote = match.group(1)  # ' or "
-                    content = match.group(2)  # the content inside
-                    return (
-                        f"{quote}{content}{quote}"  # Return just 'content' or "content"
-                    )
-
-                return re.sub(pattern, replace_match, expression)
-
-            formula = remove_single_element_brackets(formula)
-            formula_column_value = ""
-            replacement_value = ""
             try:
-                format_map = {
-                    "$#,##0.00": "${:,.2f}",
-                    "#,##0.00": "{:,.2f}",
-                    "#,##0": "{:,}",
-                    "0.00": "{:.2f}",
-                    "0": "{}",
-                }
-
-                def search(find_text, within_text, start_num=1):
-                    pos = within_text.lower().find(find_text.lower(), start_num - 1)
-                    return pos + 1 if pos != -1 else None
-
-                def switch_func(value, *args):
-                    # Check if we have a default (odd number of args)
-                    has_default = len(args) % 2 == 1
-                    pairs = args[:-1] if has_default else args
-                    default = args[-1] if has_default else None
-
-                    # Look for matching value in pairs
-                    for i in range(0, len(pairs), 2):
-                        if pairs[i] == value:
-                            return pairs[i + 1]
-
-                    return default
-
-                def workdays_func(to_date, from_date):
-                    if isinstance(to_date, int) or isinstance(from_date, int):
-                        return 0
-                    # Convert strings to datetime if needed
-                    if isinstance(to_date, str):
-                        if to_date.isdigit():
-                            return 0
-                        to_date = datetime.strptime(to_date, "%Y-%m-%d")
-                    if isinstance(from_date, str):
-                        if from_date.isdigit():
-                            return 0
-                        from_date = datetime.strptime(from_date, "%Y-%m-%d")
-
-                    # Ensure start is before end
-                    start = min(to_date, from_date)
-                    end = max(to_date, from_date)
-
-                    # Count working days (Monday=0 to Friday=4)
-                    working_days = 0
-                    current_date = start
-
-                    while current_date <= end:
-                        if current_date.weekday() < 5:  # Monday to Friday
-                            working_days += 1
-                        current_date += timedelta(days=1)
-
-                    return working_days
-
-                def workday_func(start_date, num_days):
-                    if isinstance(start_date, int) or isinstance(num_days, int):
-                        return 0
-                    # Convert string to datetime if needed
-                    if isinstance(start_date, str):
-                        if start_date.isdigit():
-                            return 0
-                        start_date = datetime.strptime(start_date, "%Y-%m-%d")
-
-                    current_date = start_date
-                    days_added = 0
-                    direction = 1 if num_days > 0 else -1
-                    target_days = abs(num_days)
-
-                    while days_added < target_days:
-                        current_date += timedelta(days=direction)
-                        # Count only weekdays (Monday=0 to Friday=4)
-                        if current_date.weekday() < 5:
-                            days_added += 1
-
-                    return current_date
-
-                def datevalue_func(date_text):
-                    # Convert to string if not already
-                    date_str = str(date_text)
-
-                    # Try different date formats
-                    formats = [
-                        "%Y-%m-%d",
-                        "%m/%d/%Y",
-                        "%d/%m/%Y",
-                        "%Y/%m/%d",
-                        "%m-%d-%Y",
-                        "%d-%m-%Y",
-                    ]
-
-                    for fmt in formats:
-                        try:
-                            date_obj = datetime.strptime(date_str, fmt)
-                            # Excel's epoch is January 1, 1900 (with adjustment for leap year bug)
-                            return (date_obj - datetime(1900, 1, 1)).days + 2
-                        except ValueError:
-                            continue
-
-                    raise ValueError(f"Unable to parse date: {date_text}")
-
-                def if_func(
-                    condition: Any, true_value: Any, false_value: Any | None = None
-                ):
-                    if condition:
-                        return true_value
-                    else:
-                        return false_value if false_value is not None else 0
-
-                def month_func(date):
-                    if not isinstance(date, str):
-                        return 0
-                    return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").month
-
-                def round_func(x, d):
-                    try:
-                        return round(x, d)
-                    except Exception:
-                        return 0
-
-                def year_func(date):
-                    if not isinstance(date, str):
-                        return 0
-                    return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").year
-
-                def days_func(start_date, end_date):
-                    if not isinstance(start_date, str) or not isinstance(end_date, str):
-                        return 0
-                    start_date = date.fromisoformat(start_date)
-                    end_date = date.fromisoformat(end_date)
-                    return (end_date - start_date).days
-
-                column["value"] = simple_eval(
-                    formula,
-                    functions={
-                        "ABS": lambda x: abs(x),
-                        "AVERAGE": lambda *args: sum(args) / len(args),
-                        "COUNT": lambda *args: len(args),
-                        "SUM": lambda *args: sum(args),
-                        "MOD": lambda x, y: x % y,
-                        "ROUND": round_func,
-                        "round": round_func,
-                        "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
-                        "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
-                        "LOG": lambda x, b: math.log(x, b),
-                        "MIN": lambda *args: min(args),
-                        "MAX": lambda *args: max(args),
-                        "MINUS": lambda x, y: x - y,
-                        "MULTIPLY": lambda x, y: x * y,
-                        "DIVIDE": lambda x, y: x / y,
-                        "POWER": lambda x, y: x**y,
-                        "SQRT": lambda x: x**0.5,
-                        "AND": lambda *args: all(args),
-                        "IF": if_func,
-                        "EXACT": lambda x, y: x == y,
-                        "OR": lambda *args: any(args),
-                        "XOR": lambda *args: any(args) and not all(args),
-                        "SWITCH": switch_func,
-                        "TEXT": lambda x, y: format_map[y].format(
-                            float(x) if "#" in y else int(float(x))
-                        ),
-                        "CONCATENATE": lambda *args: "".join(args),
-                        "REPLACE": lambda text, start, num_chars, new_text: text[
-                            : start - 1
-                        ]
-                        + new_text
-                        + text[start - 1 + num_chars :],
-                        "SUBSTITUTE": lambda text, old, new: text.replace(old, new),
-                        "SEARCH": search,
-                        "LEFT": lambda text, num_chars: text[:num_chars],
-                        "RIGHT": lambda text, num_chars: text[-num_chars:],
-                        "LEN": lambda text: len(text),
-                        "REPT": lambda text, num_times: text * num_times,
-                        "TRIM": lambda text: text.strip(),
-                        "UPPER": lambda text: text.upper(),
-                        "LOWER": lambda text: text.lower(),
-                        "PI": lambda: math.pi,
-                        "TRUE": lambda: True,
-                        "FALSE": lambda: False,
-                        "DATE": lambda y, m, d: datetime(y, m, d).strftime("%Y-%m-%d"),
-                        "DAYS": days_func,
-                        "WORKDAYS": workdays_func,
-                        "TODAY": lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                        "FORMAT_DATE": lambda date, format_str: datetime.strptime(
-                            date, format_str
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "YEAR": year_func,
-                        "MONTH": month_func,
-                        "WEEKNUM": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).isocalendar()[1],
-                        "ISOWEEKNUM": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).isocalendar()[1],
-                        "DAY": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).day,
-                        "HOUR": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).hour,
-                        "MINUTE": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).minute,
-                        "SECOND": lambda date: datetime.strptime(
-                            date, "%Y-%m-%d %H:%M:%S"
-                        ).second,
-                        "ADD_DAYS": lambda date, days: (
-                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-                            + timedelta(days=days)
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "SUBTRACT_DAYS": lambda date, days: (
-                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-                            - timedelta(days=days)
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "ADD_MINUTES": lambda date, minutes: (
-                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-                            + timedelta(minutes=minutes)
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "SUBTRACT_MINUTES": lambda date, minutes: (
-                            datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
-                            - timedelta(minutes=minutes)
-                        ).strftime("%Y-%m-%d %H:%M:%S"),
-                        "HOURS_DIFF": lambda date1, date2: (
-                            datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
-                            - datetime.strptime(date2, "%Y-%m-%d %H:%M:%S")
-                        ).total_seconds()
-                        / 3600,
-                        "WORKDAY": workday_func,
-                        "DATEVALUE": datevalue_func,
+                column["value"] = evaluate_formula(formula)
+            except Exception as e:
+                self.logger.error(
+                    f"Error evaluating formula ({formula}): {e}",
+                    labels={
+                        "formula": formula,
+                        "column_name": column["column"]["title"],
+                        "column_value": formula_column_value,
+                        "replacement_value": replacement_value,
+                        "settings_str": column["column"].get("settings_str"),
                     },
                 )
-            except Exception as e:
-                if "division by zero" in str(e):
-                    column["value"] = 0
-                else:
-                    self.logger.error(
-                        f"Error evaluating formula ({formula}): {e}",
-                        labels={
-                            "formula": formula,
-                            "column_name": column["column"]["title"],
-                            "column_value": formula_column_value,
-                            "replacement_value": replacement_value,
-                            "settings_str": column["column"].get("settings_str"),
-                        },
-                    )
 
         elif column["type"] == "mirror":
             settings_str = column["column"].get("settings_str") or "{}"
@@ -1515,3 +1259,281 @@ def get_items_by_board_query(
     }}
     """
     return graphql_parse(query)
+
+
+def convert_value(val):
+    if isinstance(val, str):
+        if val.endswith("%"):
+            return float(val.replace("%", ""))
+        return float(val.replace("$", "").replace(",", ""))
+    return val
+
+
+def evaluate_formula(formula: str) -> Any:
+    # The IF function needs to make sure the condition uses double equals instead of single equals
+    formula = (
+        formula.replace("==", "=")
+        .replace("=", "==")
+        .replace("<==", "<=")
+        .replace(">==", ">=")
+        .replace("!==", "!=")
+        .replace("if(", "IF(")
+        .replace("<>", "!=")
+    )
+
+    # We also see patterns like IF(['Net'] == 'Net', 1, 0), which should evaluate to 1 even though the comparison is between a list and a string
+    def remove_single_element_brackets(expression):
+        # Pattern to match single-element lists like ['content'] or ["content"]
+        pattern = r"\[(['\"])([^,\]]*?)\1\]"
+
+        def replace_match(match):
+            quote = match.group(1)  # ' or "
+            content = match.group(2)  # the content inside
+            return f"{quote}{content}{quote}"  # Return just 'content' or "content"
+
+        return re.sub(pattern, replace_match, expression)
+
+    formula = remove_single_element_brackets(formula)
+    try:
+        format_map = {
+            "$#,##0.00": "${:,.2f}",
+            "#,##0.00": "{:,.2f}",
+            "#,##0": "{:,}",
+            "0.00": "{:.2f}",
+            "0": "{}",
+        }
+
+        def search(find_text, within_text, start_num=1):
+            pos = within_text.lower().find(find_text.lower(), start_num - 1)
+            return pos + 1 if pos != -1 else None
+
+        def switch_func(value, *args):
+            # Check if we have a default (odd number of args)
+            has_default = len(args) % 2 == 1
+            pairs = args[:-1] if has_default else args
+            default = args[-1] if has_default else None
+
+            # Look for matching value in pairs
+            for i in range(0, len(pairs), 2):
+                if pairs[i] == value:
+                    return pairs[i + 1]
+
+            return default
+
+        def workdays_func(to_date, from_date):
+            if isinstance(to_date, int) or isinstance(from_date, int):
+                return 0
+            # Convert strings to datetime if needed
+            if isinstance(to_date, str):
+                if to_date.isdigit():
+                    return 0
+                to_date = datetime.strptime(to_date, "%Y-%m-%d")
+            if isinstance(from_date, str):
+                if from_date.isdigit():
+                    return 0
+                from_date = datetime.strptime(from_date, "%Y-%m-%d")
+
+            # Ensure start is before end
+            start = min(to_date, from_date)
+            end = max(to_date, from_date)
+
+            # Count working days (Monday=0 to Friday=4)
+            working_days = 0
+            current_date = start
+
+            while current_date <= end:
+                if current_date.weekday() < 5:  # Monday to Friday
+                    working_days += 1
+                current_date += timedelta(days=1)
+
+            return working_days
+
+        def workday_func(start_date, num_days):
+            if isinstance(start_date, int) or isinstance(num_days, int):
+                return 0
+            # Convert string to datetime if needed
+            if isinstance(start_date, str):
+                if start_date.isdigit():
+                    return 0
+                start_date = datetime.strptime(start_date, "%Y-%m-%d")
+
+            current_date = start_date
+            days_added = 0
+            direction = 1 if num_days > 0 else -1
+            target_days = abs(num_days)
+
+            while days_added < target_days:
+                current_date += timedelta(days=direction)
+                # Count only weekdays (Monday=0 to Friday=4)
+                if current_date.weekday() < 5:
+                    days_added += 1
+
+            return current_date
+
+        def datevalue_func(date_text):
+            # Convert to string if not already
+            date_str = str(date_text)
+
+            # Try different date formats
+            formats = [
+                "%Y-%m-%d",
+                "%m/%d/%Y",
+                "%d/%m/%Y",
+                "%Y/%m/%d",
+                "%m-%d-%Y",
+                "%d-%m-%Y",
+            ]
+
+            for fmt in formats:
+                try:
+                    date_obj = datetime.strptime(date_str, fmt)
+                    # Excel's epoch is January 1, 1900 (with adjustment for leap year bug)
+                    return (date_obj - datetime(1900, 1, 1)).days + 2
+                except ValueError:
+                    continue
+
+            raise ValueError(f"Unable to parse date: {date_text}")
+
+        def if_func(condition: Any, true_value: Any, false_value: Any | None = None):
+            if condition:
+                return true_value
+            else:
+                return false_value if false_value is not None else 0
+
+        def month_func(date):
+            if not isinstance(date, str):
+                return 0
+            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").month
+
+        def round_func(x, d):
+            try:
+                return round(x, d)
+            except Exception:
+                return 0
+
+        def year_func(date):
+            if not isinstance(date, str):
+                return 0
+            return datetime.strptime(date, "%Y-%m-%d %H:%M:%S").year
+
+        def days_func(start_date, end_date):
+            if not isinstance(start_date, str) or not isinstance(end_date, str):
+                return 0
+            start_date = date.fromisoformat(start_date)
+            end_date = date.fromisoformat(end_date)
+            return (end_date - start_date).days
+
+        def is_number_func(value: Any) -> bool:
+            if isinstance(value, str):
+                return value.replace(".", "").isdigit()
+            return isinstance(value, int | float)
+
+        def value_func(value: Any) -> int | float:
+            if isinstance(value, str):
+                return float(value.replace("$", "").replace(",", ""))
+            return value
+
+        return simple_eval(
+            formula,
+            functions={
+                "ABS": lambda x: abs(x),
+                "AVERAGE": lambda *args: sum(args) / len(args),
+                "COUNT": lambda *args: len(args),
+                "SUM": lambda *args: sum(args),
+                "MOD": lambda x, y: x % y,
+                "ROUND": round_func,
+                "round": round_func,
+                "ROUNDUP": lambda x, d: math.ceil(x * (10**d)) / (10**d),
+                "ROUNDDOWN": lambda x, d: math.floor(x * (10**d)) / (10**d),
+                "LOG": lambda x, b: math.log(x, b),
+                "MIN": lambda *args: min(args),
+                "MAX": lambda *args: max(args),
+                "MINUS": lambda x, y: x - y,
+                "MULTIPLY": lambda x, y: x * y,
+                "DIVIDE": lambda x, y: x / y,
+                "POWER": lambda x, y: x**y,
+                "SQRT": lambda x: x**0.5,
+                "AND": lambda *args: all(args),
+                "IF": if_func,
+                "EXACT": lambda x, y: x == y,
+                "OR": lambda *args: any(args),
+                "XOR": lambda *args: any(args) and not all(args),
+                "SWITCH": switch_func,
+                "TEXT": lambda x, y: format_map[y].format(
+                    float(x) if "#" in y else int(float(x))
+                ),
+                "CONCATENATE": lambda *args: "".join(args),
+                "REPLACE": lambda text, start, num_chars, new_text: text[: start - 1]
+                + new_text
+                + text[start - 1 + num_chars :],
+                "SUBSTITUTE": lambda text, old, new: text.replace(old, new),
+                "SEARCH": search,
+                "LEFT": lambda text, num_chars: text[:num_chars],
+                "RIGHT": lambda text, num_chars: text[-num_chars:],
+                "LEN": lambda text: len(text),
+                "REPT": lambda text, num_times: text * num_times,
+                "TRIM": lambda text: text.strip(),
+                "UPPER": lambda text: text.upper(),
+                "LOWER": lambda text: text.lower(),
+                "PI": lambda: math.pi,
+                "TRUE": lambda: True,
+                "FALSE": lambda: False,
+                "DATE": lambda y, m, d: datetime(y, m, d).strftime("%Y-%m-%d"),
+                "DAYS": days_func,
+                "WORKDAYS": workdays_func,
+                "TODAY": lambda: datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                "FORMAT_DATE": lambda date, format_str: datetime.strptime(
+                    date, format_str
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "YEAR": year_func,
+                "MONTH": month_func,
+                "WEEKNUM": lambda date: datetime.strptime(
+                    date, "%Y-%m-%d %H:%M:%S"
+                ).isocalendar()[1],
+                "ISOWEEKNUM": lambda date: datetime.strptime(
+                    date, "%Y-%m-%d %H:%M:%S"
+                ).isocalendar()[1],
+                "DAY": lambda date: datetime.strptime(date, "%Y-%m-%d %H:%M:%S").day,
+                "HOUR": lambda date: datetime.strptime(date, "%Y-%m-%d %H:%M:%S").hour,
+                "MINUTE": lambda date: datetime.strptime(
+                    date, "%Y-%m-%d %H:%M:%S"
+                ).minute,
+                "SECOND": lambda date: datetime.strptime(
+                    date, "%Y-%m-%d %H:%M:%S"
+                ).second,
+                "ADD_DAYS": lambda date, days: (
+                    datetime.strptime(date, "%Y-%m-%d %H:%M:%S") + timedelta(days=days)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "SUBTRACT_DAYS": lambda date, days: (
+                    datetime.strptime(date, "%Y-%m-%d %H:%M:%S") - timedelta(days=days)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "ADD_MINUTES": lambda date, minutes: (
+                    datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                    + timedelta(minutes=minutes)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "SUBTRACT_MINUTES": lambda date, minutes: (
+                    datetime.strptime(date, "%Y-%m-%d %H:%M:%S")
+                    - timedelta(minutes=minutes)
+                ).strftime("%Y-%m-%d %H:%M:%S"),
+                "HOURS_DIFF": lambda date1, date2: (
+                    datetime.strptime(date1, "%Y-%m-%d %H:%M:%S")
+                    - datetime.strptime(date2, "%Y-%m-%d %H:%M:%S")
+                ).total_seconds()
+                / 3600,
+                "WORKDAY": workday_func,
+                "DATEVALUE": datevalue_func,
+                "ISNUMBER": is_number_func,
+                "VALUE": value_func,
+            },
+            operators={
+                **DEFAULT_OPERATORS,
+                ast.Div: lambda x, y: convert_value(x) / convert_value(y),
+                ast.Mult: lambda x, y: convert_value(x) * convert_value(y),
+                ast.Add: lambda x, y: convert_value(x) + convert_value(y),
+                ast.Sub: lambda x, y: convert_value(x) - convert_value(y),
+            },
+        )
+    except Exception as e:
+        if "division by zero" in str(e):
+            return 0
+        raise e
