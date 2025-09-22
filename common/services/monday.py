@@ -1149,6 +1149,13 @@ class MondayService(BaseService):
 
         return await self._execute_with_shared_session(operation)
 
+    async def get_board_async(self, board_id: int) -> SimpleBoard:
+        async def operation(client: AsyncMondayClient):
+            response = await client.boards.get_boards(ids=board_id)
+            return SimpleBoard.model_validate(response["data"]["boards"][0])
+
+        return await self._execute_with_shared_session(operation)
+
 
 def _get_item_query_without_updates(
     board_id, column_id, value, limit=None, cursor=None

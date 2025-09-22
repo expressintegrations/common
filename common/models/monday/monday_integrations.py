@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, UTC
 from enum import Enum
 from typing import List, Any
 from typing import Optional
@@ -51,6 +51,12 @@ class InputFields(BaseModel):
         alias_generator = to_camel
 
 
+class IntegrationRunStatus(str, Enum):
+    RUNNING = "Running"
+    COMPLETED = "Completed"
+    FAILED = "Failed"
+
+
 class MondayIntegration(Model):
     __collection__ = "monday_integrations"
     integration_id: Optional[int] = None
@@ -62,9 +68,16 @@ class MondayIntegration(Model):
     feature_group_id: Optional[str] = None
     input_fields: Optional[InputFields] = None
     webhook_id: Optional[int] = None
-    last_successful_run_at: Optional[datetime] = None
     installation_id: Optional[str] = None
     initial_run_completed: Optional[bool] = False
     field_map: Optional[dict[str, str]] = None
     inbound_field_values: Optional[InboundFieldValues] = None
     recipe_id: Optional[int] = None
+    board_name: Optional[str] = None
+    recipe_name: Optional[str] = None
+    last_successful_run_at: Optional[datetime] = None
+    last_run_status: Optional[IntegrationRunStatus] = None
+    last_run_at: Optional[datetime] = None
+    last_run_error_message: Optional[str] = None
+    last_run_total_rows: Optional[int] = None
+    last_run_processed_rows: Optional[int] = None
