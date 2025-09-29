@@ -866,6 +866,22 @@ class MondayService(BaseService):
                 result = await operation(async_monday_client)
                 return result
 
+            except aiohttp.ClientResponseError as e:
+                # Don't retry for client errors (4xx) except specific retryable ones
+                if 400 <= e.status < 500 and e.status not in [408, 429]:
+                    self.logger.warning(f"Client error {e.status} - not retrying: {e}")
+                    raise e
+
+                # For retryable status codes, fall through to retry logic
+                last_exception = e
+                self.logger.warning(f"Session error on attempt {attempt + 1}: {e}")
+
+                if attempt == max_retries:
+                    raise e
+
+                delay = min(2**attempt, 30)
+                await asyncio.sleep(delay)
+
             except (
                 aiohttp.ClientError,
                 aiohttp.ServerDisconnectedError,
@@ -947,7 +963,7 @@ class MondayService(BaseService):
     async def get_item_with_column_values_async(
         self, item_id, return_type="list"
     ) -> List[ColumnValue] | Dict[str, ColumnValue]:
-        async def operation(client):
+        async def operation(client: AsyncMondayClient):
             response = await client.items.get_items_by_id(
                 ids=[item_id],
             )
@@ -1009,6 +1025,25 @@ class MondayService(BaseService):
             if c["type"] not in UNSUPPORTED_MONDAY_COLUMN_TYPES and c["id"] != "name"
         ]
         return base_columns + columns
+
+    async def delete_column_async(self, board_id: int, column_id: str) -> None:
+        async def operation(client: AsyncMondayClient):
+            response = await client.columns.delete_column(
+                board_id=board_id,
+                column_id=column_id,
+            )
+            return response
+
+        return await self._execute_with_shared_session(operation)
+
+    async def delete_item_async(self, item_id: str) -> dict:
+        async def operation(client: AsyncMondayClient):
+            response = await client.items.delete_item(
+                item_id=item_id,
+            )
+            return response
+
+        return await self._execute_with_shared_session(operation)
 
     async def get_items_with_column_values_async(
         self,
