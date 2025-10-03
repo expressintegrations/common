@@ -1134,6 +1134,7 @@ class MondayService(BaseService):
                 group_id=group_id,
                 column_values=column_values,
                 with_complexity=with_complexity,
+                create_labels_if_missing=True,
             )
             return response
 
