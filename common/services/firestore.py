@@ -1,7 +1,8 @@
 from datetime import datetime, timedelta, timezone
-from typing import Any, List, Type
+from typing import Any, Dict, List, Optional, Type, Union, Tuple
 
 from firedantic import ModelNotFoundError, configure
+from firedantic.common import OrderDirection
 from google.cloud import firestore
 from google.cloud.firestore_v1 import FieldFilter
 from hubspot.crm.schemas import ObjectSchema
@@ -13,6 +14,11 @@ from common.models.firestore.installations import Installation
 from common.models.hubspot.workflow_actions import WorkflowOptionsResponse
 from common.models.oauth.tokens import Token
 from common.services.base import BaseService
+from common.models.monday.monday_integrations import (
+    MondayIntegration,
+    IntegrationHistory,
+)
+from google.cloud.firestore_v1.transaction import Transaction
 
 
 class FirestoreService(BaseService):
@@ -150,6 +156,27 @@ class FirestoreService(BaseService):
         installation = Installation.get_by_id(installation_id)
         connection_model: Type[Connection] = Connection.model_for(installation)
         return connection_model.find()
+
+    @staticmethod
+    def get_integration_histories(
+        integration_id: str,
+        filter_: Optional[Dict[str, Union[str, dict]]] = None,
+        order_by: Optional[List[Tuple[str, OrderDirection]]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        transaction: Optional[Transaction] = None,
+    ) -> List[IntegrationHistory]:
+        integration = MondayIntegration.get_by_id(integration_id)
+        history_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
+            integration
+        )
+        return history_model.find(
+            filter_=filter_,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            transaction=transaction,
+        )
 
     def get_app_docs(self):
         return self.firestore_client.collection("apps").list_documents()

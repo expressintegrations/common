@@ -2,8 +2,15 @@ import os
 from datetime import datetime, timedelta, timezone
 
 from google.cloud import firestore
+from typing import Dict, List, Optional, Type, Union, Tuple
+from firedantic.common import OrderDirection
 
 from common.services.base import BaseService
+from common.models.monday.monday_integrations import (
+    MondayIntegration,
+    IntegrationHistory,
+)
+from google.cloud.firestore_v1.transaction import Transaction
 
 
 class AsyncFirestoreService(BaseService):
@@ -53,3 +60,24 @@ class AsyncFirestoreService(BaseService):
             )
 
         await delete_in_transaction(transaction, lock_ref)
+
+    @staticmethod
+    async def get_integration_histories(
+        integration_id: str,
+        filter_: Optional[Dict[str, Union[str, dict]]] = None,
+        order_by: Optional[List[Tuple[str, OrderDirection]]] = None,
+        limit: Optional[int] = None,
+        offset: Optional[int] = None,
+        transaction: Optional[Transaction] = None,
+    ) -> List[IntegrationHistory]:
+        integration = MondayIntegration.get_by_id(integration_id)
+        history_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
+            integration
+        )
+        return history_model.find(
+            filter_=filter_,
+            order_by=order_by,
+            limit=limit,
+            offset=offset,
+            transaction=transaction,
+        )
