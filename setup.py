@@ -23,7 +23,7 @@ setup(
         "httpx-retries==0.3.2",
         "monday==2.0.0rc3",
         "monday-async==1.8.2",
-        "pydantic==2.10.4",
+        "pydantic==2.11.9",
         "PyJWT==2.10.1",
         "pytz",
         "PyYAML==6.0.1",
