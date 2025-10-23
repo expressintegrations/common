@@ -97,6 +97,7 @@ class IntegrationHistory(SubModel):
     total_rows: Optional[int] = None
     processed_rows: Optional[int] = None
     subtasks: Optional[dict[str, Subtask]] = None
+    all_subtasks_enqueued: Optional[bool] = None
 
     class Collection(SubCollection):
         __collection_tpl__ = "monday_integrations/{id}/history"
