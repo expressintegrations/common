@@ -46,6 +46,7 @@ class IntegrationRun(BaseModel):
     board_columns: Optional[List[BoardColumn]] = None
     cursor: Optional[str] = None
     file_name: Optional[str] = None
+    key: Optional[str] = None
 
     class Config:
         populate_by_name = True
