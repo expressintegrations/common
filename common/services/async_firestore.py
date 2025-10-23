@@ -1,5 +1,5 @@
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta, timezone, UTC
 
 from google.cloud import firestore
 from typing import Dict, List, Optional, Type, Union, Tuple
@@ -12,16 +12,87 @@ from common.models.monday.monday_integrations import (
     IntegrationHistory,
 )
 from google.cloud.firestore_v1.transaction import Transaction
+from pydantic import BaseModel
+
+
+class Lock(BaseModel):
+    expires_at: datetime
+    expiration_seconds: int
+    locked: bool
+    owner: str
 
 
 class AsyncFirestoreService(BaseService):
-    def __init__(self, firestore_client: firestore.AsyncClient = None) -> None:
+    def __init__(self, firestore_client: firestore.AsyncClient | None = None) -> None:
         if firestore_client is None:
             self.firestore_client = firestore.AsyncClient()
         else:
             self.firestore_client = firestore_client
         super().__init__(
             log_name="firestore.service",
+        )
+
+    async def acquire_lock_for_owner(
+        self, lock_id: str, owner: str, expiration_seconds: int = 60
+    ) -> tuple[bool, Lock]:
+        transaction = self.firestore_client.transaction()
+
+        lock_ref = self.firestore_client.collection("locks").document(lock_id)
+        lock_data = {
+            "expires_at": firestore.SERVER_TIMESTAMP,
+            "expiration_seconds": expiration_seconds,
+            "locked": True,
+            "owner": owner,
+        }
+
+        @firestore.async_transactional
+        async def update_in_transaction(transaction: Transaction) -> bool:
+            snapshot = await lock_ref.get(transaction=transaction)
+            if not snapshot.exists:
+                transaction.set(lock_ref, lock_data)
+                return True
+            existing_lock = snapshot.to_dict()
+            if existing_lock is None:
+                transaction.set(lock_ref, lock_data)
+                return True
+            expires_at = existing_lock.get("expires_at")
+            expiration_seconds = existing_lock.get("expiration_seconds")
+
+            # If the lock exists and hasn't expired, check if it's owned by the same owner
+            if (
+                expires_at is not None
+                and expiration_seconds is not None
+                and expires_at + timedelta(seconds=expiration_seconds)
+                > datetime.now(UTC)
+            ):
+                # If same owner, allow re-acquisition
+                if existing_lock.get("owner") == owner:
+                    return True
+                # If different owner, deny acquisition
+                return False
+            # If the lock exists and has expired, allow acquisition
+            transaction.set(lock_ref, lock_data)
+            return True
+
+        lock_acquired = await update_in_transaction(transaction)
+
+        if not lock_acquired:
+            # Get the existing lock
+            snapshot = await lock_ref.get()
+            return False, Lock.model_validate(snapshot.to_dict())
+
+        # Get the actual lock data from Firestore to get the real expiration
+        snapshot = await lock_ref.get()
+        if snapshot.exists:
+            return True, Lock.model_validate(snapshot.to_dict())
+
+        # Fallback to estimated time if lock doesn't exist (shouldn't happen)
+        estimated_expires_at = datetime.now(UTC) + timedelta(seconds=expiration_seconds)
+        return True, Lock(
+            expires_at=estimated_expires_at,
+            expiration_seconds=expiration_seconds,
+            locked=True,
+            owner=owner,
         )
 
     async def acquire_lock(self, lock_id: str, expiration_seconds: int = 60) -> bool:
