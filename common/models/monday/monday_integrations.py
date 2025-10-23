@@ -83,6 +83,11 @@ class MondayIntegration(Model):
     last_run_processed_rows: Optional[int] = None
 
 
+class Subtask(BaseModel):
+    status: IntegrationRunStatus
+    processed_rows: Optional[int] = None
+
+
 class IntegrationHistory(SubModel):
     run_status: Optional[IntegrationRunStatus] = None
     run_started_at: Optional[datetime] = None
@@ -90,6 +95,7 @@ class IntegrationHistory(SubModel):
     error_message: Optional[str] = None
     total_rows: Optional[int] = None
     processed_rows: Optional[int] = None
+    subtasks: Optional[dict[str, Subtask]] = None
 
     class Collection(SubCollection):
         __collection_tpl__ = "monday_integrations/{id}/history"
