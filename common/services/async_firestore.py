@@ -4,6 +4,7 @@ from datetime import datetime, timedelta, timezone
 from google.cloud import firestore
 from typing import Dict, List, Optional, Type, Union, Tuple
 from firedantic.common import OrderDirection
+from firedantic import ModelNotFoundError
 
 from common.services.base import BaseService
 from common.models.monday.monday_integrations import (
@@ -81,3 +82,35 @@ class AsyncFirestoreService(BaseService):
             offset=offset,
             transaction=transaction,
         )
+
+    @staticmethod
+    async def create_integration_history(
+        integration_id: str, integration: IntegrationHistory
+    ) -> IntegrationHistory:
+        IntegrationHistory.__collection__ = (
+            f"monday_integrations/{integration_id}/history"
+        )
+        integration_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
+            integration
+        )
+        new_integration = integration_model(
+            **integration.model_dump(exclude_unset=True)
+        )
+        new_integration.save(exclude_unset=True)
+        return new_integration
+
+    @staticmethod
+    async def get_integration_history_by_id(
+        integration_id: str, history_id: str
+    ) -> IntegrationHistory:
+        integration = MondayIntegration.get_by_id(integration_id)
+        history_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
+            integration
+        )
+
+        try:
+            history = history_model.get_by_id(history_id)
+        except ModelNotFoundError:
+            history = history_model.model_construct()
+            history.id = history_id
+        return history
