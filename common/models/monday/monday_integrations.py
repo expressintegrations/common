@@ -86,6 +86,7 @@ class MondayIntegration(Model):
 class Subtask(BaseModel):
     status: IntegrationRunStatus
     processed_rows: Optional[int] = None
+    total_rows: Optional[int] = None
 
 
 class IntegrationHistory(SubModel):
