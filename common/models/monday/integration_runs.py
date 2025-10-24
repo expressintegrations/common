@@ -47,6 +47,8 @@ class IntegrationRun(BaseModel):
     cursor: Optional[str] = None
     file_name: Optional[str] = None
     key: Optional[str] = None
+    batch_index: Optional[int] = None
+    total_batches: Optional[int] = None
 
     class Config:
         populate_by_name = True
