@@ -14,7 +14,7 @@ class SessionData(BaseModel):
 
 
 class SessionToken(BaseModel):
-    exp: str
+    exp: int
     dat: SessionData
 
 
