@@ -79,6 +79,15 @@ class AsyncFirestoreService(BaseService):
         if not lock_acquired:
             # Get the existing lock
             snapshot = await lock_ref.get()
+            if not snapshot.exists or snapshot.to_dict() is None:
+                # Lock was deleted between transaction and retrieval
+                # Return a placeholder lock indicating it's held by unknown owner
+                return False, Lock(
+                    expires_at=datetime.now(UTC) + timedelta(seconds=expiration_seconds),
+                    expiration_seconds=expiration_seconds,
+                    locked=True,
+                    owner="unknown",
+                )
             return False, Lock.model_validate(snapshot.to_dict())
 
         # Get the actual lock data from Firestore to get the real expiration
