@@ -4,6 +4,20 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
 
+class SessionData(BaseModel):
+    account_id: int
+    user_id: int
+
+    class Config:
+        populate_by_name = True
+        alias_generator = to_camel
+
+
+class SessionToken(BaseModel):
+    exp: str
+    dat: SessionData
+
+
 class AuthToken(BaseModel):
     account_id: int
     user_id: int

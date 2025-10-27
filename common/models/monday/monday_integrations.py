@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Any
 from typing import Optional
 
-from firedantic import Model
+from firedantic import Model, SubCollection, SubModel
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
@@ -81,3 +81,23 @@ class MondayIntegration(Model):
     last_run_error_message: Optional[str] = None
     last_run_total_rows: Optional[int] = None
     last_run_processed_rows: Optional[int] = None
+
+
+class Subtask(BaseModel):
+    status: IntegrationRunStatus
+    processed_rows: Optional[int] = None
+    total_rows: Optional[int] = None
+
+
+class IntegrationHistory(SubModel):
+    run_status: Optional[IntegrationRunStatus] = None
+    run_started_at: Optional[datetime] = None
+    run_completed_at: Optional[datetime] = None
+    error_message: Optional[str] = None
+    total_rows: Optional[int] = None
+    processed_rows: Optional[int] = None
+    subtasks: Optional[dict[str, Subtask]] = None
+    all_subtasks_enqueued: Optional[bool] = None
+
+    class Collection(SubCollection):
+        __collection_tpl__ = "monday_integrations/{id}/history"
