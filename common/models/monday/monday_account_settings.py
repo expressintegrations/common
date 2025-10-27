@@ -42,8 +42,8 @@ class IntegrationAlert(Model):
 
 
 class MondayAccountSettings(BaseModel):
-    account_id: str
-    user_id: str
+    account_id: int
+    user_id: int
     connections: list[MondayAccountConnection]
     recipes: list[MondayIntegration]
     alerts: list[IntegrationAlert]
