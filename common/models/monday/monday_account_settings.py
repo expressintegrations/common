@@ -33,7 +33,7 @@ class AlertType(StrEnum):
 
 class IntegrationAlert(Model):
     __collection__ = "monday_integration_alerts"
-    account_id: str
+    account_id: int
     type: AlertType
     text: str
     link: Optional[str] = None
