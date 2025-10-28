@@ -4,16 +4,14 @@ from enum import StrEnum
 from firedantic import Model
 from pydantic import BaseModel
 from common.models.monday.monday_integrations import MondayIntegration
+from common.models.firestore.connections import Connection
 
 
 class MondayAccountConnection(BaseModel):
     installation_id: str
-    connection_id: str
-    app_name: str
-    authorized_by_id: str
     user_account_identifier: str
-    connected: bool
     icon: str
+    connection: Connection
 
 
 class Status(StrEnum):
