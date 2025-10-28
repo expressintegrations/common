@@ -10,7 +10,6 @@ from common.models.firestore.connections import Connection
 class MondayAccountConnection(BaseModel):
     installation_id: str
     user_account_identifier: str
-    app_name: str
     icon: str
     connection: Connection
 
