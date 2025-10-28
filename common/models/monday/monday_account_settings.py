@@ -6,6 +6,16 @@ from pydantic import BaseModel
 from common.models.monday.monday_integrations import MondayIntegration
 
 
+class MondayAccountConnection(BaseModel):
+    installation_id: str
+    connection_id: str
+    app_name: str
+    authorized_by_id: str
+    user_account_identifier: str
+    connected: bool
+    icon: str
+
+
 class Status(StrEnum):
     """Enum for status values."""
 
@@ -36,5 +46,6 @@ class MondayAccountSettings(BaseModel):
     account_id: int
     account_slug: str
     user_id: int
+    connections: list[MondayAccountConnection]
     recipes: list[MondayIntegration]
     alerts: list[IntegrationAlert]
