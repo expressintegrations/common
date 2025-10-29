@@ -1121,7 +1121,7 @@ class MondayService(BaseService):
 
     async def get_items_by_column_value_async(
         self, board_id, column_id, column_value
-    ) -> Tuple[List[Item], Complexity]:
+    ) -> list[Item]:
         async def operation(client: AsyncMondayClient):
             items = []
             cursor = None
@@ -1158,7 +1158,7 @@ class MondayService(BaseService):
                         },
                     )
                     await asyncio.sleep(complexity.reset_in_x_seconds + 1)
-            return list(item_ids)
+            return items
 
         return await self._execute_with_shared_session(operation)
 
