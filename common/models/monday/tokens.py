@@ -2,11 +2,22 @@ from typing import Optional
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
+from common.models.monday.app_events import Subscription
 
 
 class SessionData(BaseModel):
+    client_id: str
     account_id: int
     user_id: int
+    slug: str
+    app_id: int
+    app_version_id: int
+    install_id: int
+    is_admin: bool
+    is_view_only: bool
+    is_guest: bool
+    user_kind: str
+    subscription: Subscription | None = None
 
     class Config:
         populate_by_name = True
