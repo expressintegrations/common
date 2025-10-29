@@ -33,6 +33,9 @@ class Subscription(BaseModel):
     billing_period: str | None = None
     days_left: int | None = None
     pricing_version: int | None = None
+    referrer: str | None = None
+    referrer_slug: str | None = None
+    max_units: int | None = None
 
     @field_serializer("renewal_date")
     def serialize_renewal_date(self, dt: datetime, _info):
