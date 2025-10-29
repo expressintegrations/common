@@ -1128,13 +1128,14 @@ class MondayService(BaseService):
             query_params = QueryParams()
             query_params.add_rule(column_id=column_id, compare_value=column_value)
             while True:
-                response = await client.items.get_items_by_board(
-                    board_ids=board_id,
-                    query_params=query_params,
-                    limit=100,
-                    cursor=cursor,
-                    with_complexity=True,
-                    with_column_values=True,
+                response = await client.custom.execute_custom_query(
+                    custom_query=get_items_by_board_query(
+                        board_ids=board_id,
+                        query_params=query_params if cursor is None else None,
+                        limit=100,
+                        cursor=cursor,
+                        with_complexity=True,
+                    )
                 )
                 items_page = response["data"]["boards"][0]["items_page"]
                 for raw_item in items_page["items"]:
