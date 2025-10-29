@@ -1192,6 +1192,24 @@ class MondayService(BaseService):
 
         return await self._execute_with_shared_session(operation)
 
+    async def create_update_async(
+        self,
+        item_id: int,
+        body: str,
+        parent_update_id: int | None = None,
+        with_complexity: bool = False,
+    ) -> dict:
+        async def operation(client: AsyncMondayClient):
+            response = await client.updates.create_update(
+                item_id=item_id,
+                body=body,
+                parent_id=parent_update_id,
+                with_complexity=with_complexity,
+            )
+            return response
+
+        return await self._execute_with_shared_session(operation)
+
 
 def _get_item_query_without_updates(
     board_id, column_id, value, limit=None, cursor=None
