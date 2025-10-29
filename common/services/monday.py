@@ -1119,6 +1119,49 @@ class MondayService(BaseService):
 
         return await self._execute_with_shared_session(operation)
 
+    async def get_items_by_column_value_async(
+        self, board_id, column_id, column_value
+    ) -> Tuple[List[Item], Complexity]:
+        async def operation(client: AsyncMondayClient):
+            items = []
+            cursor = None
+            query_params = QueryParams()
+            query_params.add_rule(column_id=column_id, compare_value=column_value)
+            while True:
+                response = await client.items.get_items_by_board(
+                    board_ids=board_id,
+                    query_params=query_params,
+                    limit=100,
+                    cursor=cursor,
+                    with_complexity=True,
+                    with_column_values=True,
+                )
+                items_page = response["data"]["boards"][0]["items_page"]
+                for raw_item in items_page["items"]:
+                    item = Item(
+                        id=raw_item["id"],
+                        name=raw_item["name"],
+                        updated_at=raw_item["updated_at"],
+                        column_values=self.parse_item_column_values(raw_item),
+                    )
+                    items.append(item)
+                cursor = items_page["cursor"]
+                if not cursor:
+                    break
+
+                complexity = Complexity.model_validate(response["data"]["complexity"])
+                if complexity.after - complexity.query <= 0:
+                    self.logger.log_info(
+                        f"Sleeping for {complexity.reset_in_x_seconds + 1} seconds",
+                        labels={
+                            "complexity": json.dumps(complexity.model_dump()),
+                        },
+                    )
+                    await asyncio.sleep(complexity.reset_in_x_seconds + 1)
+            return list(item_ids)
+
+        return await self._execute_with_shared_session(operation)
+
     async def create_item_async(
         self,
         board_id: int,
