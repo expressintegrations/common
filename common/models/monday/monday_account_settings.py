@@ -46,6 +46,7 @@ class MondayAccountSettings(BaseModel):
     account_id: int
     account_slug: str
     user_id: int
+    anvil_user_id: str | None = None
     connections: list[MondayAccountConnection]
     recipes: list[MondayIntegration]
     alerts: list[IntegrationAlert]
