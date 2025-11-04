@@ -81,6 +81,7 @@ class MondayIntegration(Model):
     last_run_error_message: Optional[str] = None
     last_run_total_rows: Optional[int] = None
     last_run_processed_rows: Optional[int] = None
+    full_sync: Optional[bool] = None
 
 
 class Subtask(BaseModel):
