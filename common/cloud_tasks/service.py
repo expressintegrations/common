@@ -205,6 +205,28 @@ class CloudTasksService:
             ),
         )
 
+    def pause_queue(self, name: str) -> Queue | None:
+        """Pauses the specified queue."""
+        queue_path = self.cloud_tasks_client.queue_path(
+            self.project, self.location, name
+        )
+        try:
+            self.logger.log_info(f"Pausing queue: {queue_path}")
+            return self.cloud_tasks_client.pause_queue(name=queue_path)
+        except NotFound:
+            return None
+
+    def resume_queue(self, name: str) -> Queue | None:
+        """Resumes the specified queue."""
+        queue_path = self.cloud_tasks_client.queue_path(
+            self.project, self.location, name
+        )
+        try:
+            self.logger.log_info(f"Resuming queue: {queue_path}")
+            return self.cloud_tasks_client.resume_queue(name=queue_path)
+        except NotFound:
+            return None
+
     def delete_queue(self, name: str) -> None:
         """Deletes the specified queue."""
         queue_path = self.cloud_tasks_client.queue_path(
