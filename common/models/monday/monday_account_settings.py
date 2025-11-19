@@ -4,6 +4,7 @@ from enum import StrEnum
 from firedantic import Model
 from pydantic import BaseModel
 from common.models.monday.monday_integrations import MondayIntegration
+from common.models.firestore.accounts import Account
 
 
 class MondayAccountConnection(BaseModel):
@@ -41,6 +42,13 @@ class IntegrationAlert(Model):
     dismissed: Optional[bool] = False
 
 
+class MondayAccount(Account):
+    send_success_alerts: bool = False
+    send_failure_alerts: bool = True
+    send_warning_alerts: bool = True
+    additional_emails: Optional[list[str]] = []
+
+
 class MondayAccountSettings(BaseModel):
     installation_id: str
     account_id: int
@@ -50,3 +58,7 @@ class MondayAccountSettings(BaseModel):
     connections: list[MondayAccountConnection]
     recipes: list[MondayIntegration]
     alerts: list[IntegrationAlert]
+    send_success_alerts: bool = False
+    send_failure_alerts: bool = True
+    send_warning_alerts: bool = True
+    additional_emails: Optional[list[str]] = []
