@@ -863,8 +863,9 @@ class MondayService(BaseService):
                     session=self._shared_session,
                 )
 
-                result = await operation(async_monday_client)
-                return result
+                async with async_monday_client:
+                    result = await operation(async_monday_client)
+                    return result
 
             except aiohttp.ClientResponseError as e:
                 # Don't retry for client errors (4xx) except specific retryable ones

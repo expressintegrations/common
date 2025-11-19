@@ -16,7 +16,7 @@ class SessionData(BaseModel):
     is_admin: bool
     is_view_only: bool
     is_guest: bool
-    user_kind: str
+    user_kind: str | None = None
     subscription: Subscription | None = None
 
     class Config:
