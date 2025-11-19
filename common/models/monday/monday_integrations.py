@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
 from common.models.monday.integration_runs import InboundFieldValues
+from google.cloud.firestore_v1.transaction import Transaction
 
 
 class Reference(BaseModel):
@@ -82,6 +83,35 @@ class MondayIntegration(Model):
     last_run_total_rows: Optional[int] = None
     last_run_processed_rows: Optional[int] = None
     full_sync: Optional[bool] = None
+
+    def save(
+        self,
+        *,
+        exclude_unset: bool = False,
+        exclude_none: bool = False,
+        transaction: Optional[Transaction] = None,
+        merge: bool = False,
+    ) -> None:
+        """
+        Saves this model in the database.
+
+        :param exclude_unset: Whether to exclude fields that have not been explicitly set.
+        :param exclude_none: Whether to exclude fields that have a value of `None`.
+        :param transaction: Optional transaction to use.
+        :raise DocumentIDError: If the document ID is not valid.
+        """
+        data = self.model_dump(
+            by_alias=True, exclude_unset=exclude_unset, exclude_none=exclude_none
+        )
+        if self.__document_id__ in data:
+            del data[self.__document_id__]
+
+        doc_ref = self._get_doc_ref()
+        if transaction is not None:
+            transaction.set(doc_ref, data)
+        else:
+            doc_ref.set(data, merge=merge)
+        setattr(self, self.__document_id__, doc_ref.id)
 
 
 class Subtask(BaseModel):
