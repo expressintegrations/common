@@ -1088,7 +1088,7 @@ class MondayService(BaseService):
     ) -> List[str]:
         async def operation(client: AsyncMondayClient):
             item_ids = set()
-            cursor = None
+            cursor: str | None = None
             query_params = QueryParams()
             query_params.add_rule(column_id=column_id, compare_value=column_value)
             while True:
@@ -1232,7 +1232,9 @@ class MondayService(BaseService):
 
     async def get_board_async(self, board_id: int) -> SimpleBoard:
         async def operation(client: AsyncMondayClient):
-            response = await client.boards.get_boards(ids=board_id)
+            response = await client.custom.execute_custom_query(
+                custom_query=get_simple_board_query(board_id=board_id)
+            )
             return SimpleBoard.model_validate(response["data"]["boards"][0])
 
         return await self._execute_with_shared_session(operation)
@@ -1361,6 +1363,29 @@ def get_items_by_board_query(
                     updated_at
                 }}
             }}
+        }}
+    }}
+    """
+    return graphql_parse(query)
+
+
+def get_simple_board_query(
+    board_id: ID,
+) -> str:
+    """
+    This query retrieves a simple representation of a board by its ID.
+    For more information, visit https://developer.monday.com/api-reference/reference/boards#queries
+
+    Args:
+        id (ID): The ID of the board to retrieve.
+    """
+    query = f"""
+    query {{
+        boards (
+            ids: {format_param_value(board_id)}
+        ) {{
+            id
+            name
         }}
     }}
     """
