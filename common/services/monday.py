@@ -875,9 +875,9 @@ class MondayService(BaseService):
 
                 # For retryable status codes, fall through to retry logic
                 last_exception = e
-                self.logger.warning(f"Session error on attempt {attempt + 1}: {e}")
 
                 if attempt == max_retries:
+                    self.logger.error(f"Max retries reached. Last error: {e}")
                     raise e
 
                 delay = min(2**attempt, 30)
