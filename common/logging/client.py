@@ -181,7 +181,7 @@ class Logger:
     def _prepare_payload(
         self,
         message: str | dict,
-        labels: dict[str, str] | None,
+        labels: dict[str, Any] | None,
     ) -> tuple[dict[str, Any], dict[str, str]]:
         """Prepare log payload with metadata and context."""
         if isinstance(message, dict):
@@ -222,7 +222,7 @@ class Logger:
         self,
         payload: dict,
         severity: Severity | None = None,
-        labels: dict[str, str] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> None:
         """Log structured data with optional severity and labels."""
         # Default to INFO if no severity provided
@@ -249,7 +249,7 @@ class Logger:
         message: str,
         *args: Any,
         severity: Severity | None = None,
-        labels: dict[str, str] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> None:
         """Log a text message with metadata."""
         if args:
@@ -260,7 +260,7 @@ class Logger:
         self,
         exc: Exception,
         additional_message: str | None = None,
-        labels: dict[str, str] | None = None,
+        labels: dict[str, Any] | None = None,
     ) -> None:
         """Log an exception with full traceback."""
         exc_type = type(exc).__name__
@@ -281,42 +281,42 @@ class Logger:
 
     # Convenience methods for different severity levels
     def log_debug(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.DEBUG, labels=labels)
 
     debug = log_debug
 
     def log_info(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.INFO, labels=labels)
 
     info = log_info
 
     def log_warning(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.WARNING, labels=labels)
 
     warning = log_warning
 
     def log_error(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.ERROR, labels=labels)
 
     error = log_error
 
     def log_alert(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.ALERT, labels=labels)
 
     alert = log_alert
 
     def log_critical(
-        self, message: str, *args: Any, labels: dict[str, str] | None = None
+        self, message: str, *args: Any, labels: dict[str, Any] | None = None
     ) -> None:
         self.log_text(message, *args, severity=Severity.CRITICAL, labels=labels)
 

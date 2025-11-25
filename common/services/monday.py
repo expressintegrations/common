@@ -624,6 +624,8 @@ class MondayService(BaseService):
                 return column
 
             # Replace the column names with the values
+            formula_column_value = None
+            replacement_value = None
             for match in matches:
                 column_name = match[0].replace("#Labels", "")
                 formula_column = column_values_by_column_id.get(column_name)
@@ -1096,7 +1098,7 @@ class MondayService(BaseService):
                     board_ids=board_id,
                     query_params=query_params,
                     limit=100,
-                    cursor=cursor,
+                    cursor=cursor,  # type: ignore
                     with_complexity=True,
                     with_column_values=False,
                 )

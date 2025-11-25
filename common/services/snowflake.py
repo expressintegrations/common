@@ -35,11 +35,11 @@ class SnowflakeService(BaseService):
     def __init__(
         self,
         account_identifier: str,
-        region: str,
         cloud_platform: str,
         username: str,
         role: str,
         warehouse: str,
+        region: str | None = None,
         redirect_uri: str | None = None,
         access_token: str | None = None,
         client_id: str | None = None,
