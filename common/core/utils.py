@@ -67,14 +67,63 @@ def merge_dicts_of_lists(dict1, dict2):
 
 
 def format_sf(text, suffix=None, safe=False):
+    # Handle empty or None input
+    if not text or not isinstance(text, str):
+        return "unnamed_column"
+
+    # Remove any double quotes
     text = re.sub(r'"+', "", text)
+
+    # Strip leading/trailing whitespace
+    text = text.strip()
+
+    # If empty after stripping, return a default name
+    if not text:
+        return "unnamed_column"
+
+    # Check if text starts with a digit BEFORE any other processing
+    starts_with_digit = text[0].isdigit()
+
+    # Check for special characters
     has_special_chars = re.search(r"[^0-9a-zA-Z_. ]", text)
+
     if has_special_chars:
         text = re.sub(r"[^0-9a-zA-Z]+", "_", text) if safe else f'"{text}"'
     else:
         text = re.sub(r"\W+", "_", text)
-    if text[0].isdigit():
+
+    # Add prefix if starts with digit (only for unquoted identifiers)
+    # Quoted identifiers can start with digits in Snowflake
+    if starts_with_digit and not text.startswith('"'):
         text = f"n_{text}"
+
+    # Add suffix if provided
     if suffix:
         text = f"{text}{suffix}"
-    return text.lower().strip().strip("_")
+
+    # Convert to lowercase and strip leading/trailing whitespace
+    result = text.lower().strip()
+
+    # Strip trailing underscores
+    result = result.rstrip("_")
+
+    # Only strip leading underscores if the result would still be valid
+    # (i.e., doesn't start with a digit after stripping)
+    if result.startswith("_"):
+        # Check what's after the leading underscores
+        stripped = result.lstrip("_")
+        # Only strip if the result is not empty and doesn't start with a digit
+        if stripped and not stripped[0].isdigit():
+            result = stripped
+        # If it would start with a digit after stripping underscores, add n_ prefix
+        elif stripped and stripped[0].isdigit():
+            result = f"n_{stripped}"
+        # If stripping would leave empty string, keep the underscores
+        elif not stripped:
+            pass  # keep result as is (with underscores)
+
+    # Final check: if result is empty or invalid, return a default
+    if not result or result == '""':
+        return "unnamed_column"
+
+    return result
