@@ -1048,6 +1048,34 @@ class MondayService(BaseService):
 
         return await self._execute_with_shared_session(operation)
 
+    async def get_items_by_ids_async(
+        self,
+        item_ids: list[int | str],
+    ) -> list[Item]:
+        if len(item_ids) == 0:
+            return []
+        if len(item_ids) > 100:
+            raise ValueError("item_ids length cannot exceed 100")
+
+        async def operation(client: AsyncMondayClient):
+            response = await client.items.get_items_by_id(
+                ids=item_ids,
+                limit=100,
+                with_column_values=True,
+            )
+            items = []
+            for raw_item in response["data"]["items"]:
+                item = Item(
+                    id=raw_item["id"],
+                    name=raw_item["name"],
+                    updated_at=raw_item["updated_at"],
+                    column_values=self.parse_item_column_values(raw_item),
+                )
+                items.append(item)
+            return items
+
+        return await self._execute_with_shared_session(operation)
+
     async def get_items_with_column_values_async(
         self,
         board_id,
