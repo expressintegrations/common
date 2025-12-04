@@ -11,6 +11,8 @@ from common.models.monday.monday_integrations import (
     MondayIntegration,
     IntegrationHistory,
 )
+from common.models.firestore.connections import Connection
+from common.models.firestore.installations import Installation
 from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 from pydantic import BaseModel
 
@@ -195,3 +197,68 @@ class AsyncFirestoreService(BaseService):
             history = history_model.model_construct()
             history.id = history_id
         return history
+
+    @staticmethod
+    def get_connection_by_app_account_identifier_and_user_id(
+        integration_name: str,
+        account_identifier: int | str,
+        app_name: str,
+        user_id: str,
+    ) -> Connection:
+        installation = Installation.find_one(
+            filter_={  # type: ignore
+                "account_identifier": str(account_identifier),
+                "integration_name": integration_name,
+                "active": True,
+            }
+        )
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one(
+            {"app_name": app_name, "authorized_by_id": user_id}
+        )
+
+    @staticmethod
+    def get_connection_by_app_account_identifier(
+        integration_name: str, account_identifier: int | str, app_name: str
+    ) -> Connection:
+        installation = Installation.find_one(
+            filter_={  # type: ignore
+                "account_identifier": str(account_identifier),
+                "integration_name": integration_name,
+                "active": True,
+            }
+        )
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({"app_name": app_name})
+
+    @staticmethod
+    def get_connections_for_installation(installation_id: str) -> List[Connection]:
+        installation = Installation.get_by_id(installation_id)
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find()
+
+    @staticmethod
+    def create_connection(installation_id: str, connection: Connection) -> Connection:
+        Connection.__collection__ = f"installations/{installation_id}/connections"
+        installation = Installation.get_by_id(installation_id)
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        new_connection = connection_model(**connection.model_dump(exclude_unset=True))
+        new_connection.save(exclude_unset=True)
+        return new_connection
+
+    @staticmethod
+    def get_connection_by_app_name(installation_id: str, app_name: str) -> Connection:
+        installation = Installation.get_by_id(installation_id)
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one({"app_name": app_name})
+
+    @staticmethod
+    def get_connection_by_authorized_user(
+        installation: Installation,
+        app_name: str,
+        authorized_by_id: str,
+    ) -> Connection:
+        connection_model: Type[Connection] = Connection.model_for(installation)
+        return connection_model.find_one(
+            {"app_name": app_name, "authorized_by_id": authorized_by_id}
+        )
