@@ -3,7 +3,7 @@ from enum import Enum
 from typing import List, Any
 from typing import Optional
 
-from firedantic import AsyncModel, AsyncSubCollection, AsyncSubModel
+from firedantic import AsyncModel
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
