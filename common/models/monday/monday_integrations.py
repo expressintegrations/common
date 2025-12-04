@@ -1,14 +1,18 @@
-from datetime import datetime, UTC
+from datetime import datetime
 from enum import Enum
 from typing import List, Any
 from typing import Optional
 
-from firedantic import Model, SubCollection, SubModel
+from firedantic import AsyncModel, AsyncSubCollection, AsyncSubModel
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 
 from common.models.monday.integration_runs import InboundFieldValues
-from google.cloud.firestore_v1.transaction import Transaction
+from google.cloud.firestore_v1.async_transaction import AsyncTransaction
+from common.models.firestore.multi_model import (
+    MultiLevelAsyncSubCollection,
+    MultiLevelAsyncSubModel,
+)
 
 
 class Reference(BaseModel):
@@ -58,7 +62,7 @@ class IntegrationRunStatus(str, Enum):
     FAILED = "Failed"
 
 
-class MondayIntegration(Model):
+class MondayIntegration(AsyncModel):
     __collection__ = "monday_integrations"
     integration_id: Optional[int] = None
     account_id: Optional[int] = None
@@ -84,12 +88,12 @@ class MondayIntegration(Model):
     last_run_processed_rows: Optional[int] = None
     full_sync: Optional[bool] = None
 
-    def save(
+    async def save(
         self,
         *,
         exclude_unset: bool = False,
         exclude_none: bool = False,
-        transaction: Optional[Transaction] = None,
+        transaction: Optional[AsyncTransaction] = None,
         merge: bool = False,
     ) -> None:
         """
@@ -110,7 +114,7 @@ class MondayIntegration(Model):
         if transaction is not None:
             transaction.set(doc_ref, data)
         else:
-            doc_ref.set(data, merge=merge)
+            await doc_ref.set(data, merge=merge)
         setattr(self, self.__document_id__, doc_ref.id)
 
 
@@ -120,7 +124,7 @@ class Subtask(BaseModel):
     total_rows: Optional[int] = None
 
 
-class IntegrationHistory(SubModel):
+class IntegrationHistory(MultiLevelAsyncSubModel):
     run_status: Optional[IntegrationRunStatus] = None
     run_started_at: Optional[datetime] = None
     run_completed_at: Optional[datetime] = None
@@ -130,5 +134,23 @@ class IntegrationHistory(SubModel):
     subtasks: Optional[dict[str, Subtask]] = None
     all_subtasks_enqueued: Optional[bool] = None
 
-    class Collection(SubCollection):
-        __collection_tpl__ = "monday_integrations/{id}/history"
+    class Collection(MultiLevelAsyncSubCollection):
+        __collection_tpl__ = "monday_integrations/{integration_id}/history"
+
+
+class PrimaryKeyMapping(MultiLevelAsyncSubModel):
+    """
+    Maps Snowflake primary key values to Monday.com item IDs.
+
+    Document ID: The primary key value from Snowflake (as string)
+    Field:
+        - item_ids: List of Monday item IDs that have this primary key value
+
+    Note: Since Monday.com doesn't enforce unique constraints, multiple items
+    can have the same primary key value.
+    """
+
+    item_ids: List[int]
+
+    class Collection(MultiLevelAsyncSubCollection):
+        __collection_tpl__ = "monday_integrations/{integration_id}/primary_key_mappings"

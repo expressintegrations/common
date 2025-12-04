@@ -11,7 +11,7 @@ from common.models.monday.monday_integrations import (
     MondayIntegration,
     IntegrationHistory,
 )
-from google.cloud.firestore_v1.transaction import Transaction
+from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 from pydantic import BaseModel
 
 
@@ -46,7 +46,7 @@ class AsyncFirestoreService(BaseService):
         }
 
         @firestore.async_transactional
-        async def update_in_transaction(transaction: Transaction) -> bool:
+        async def update_in_transaction(transaction: AsyncTransaction) -> bool:
             snapshot = await lock_ref.get(transaction=transaction)
             if not snapshot.exists:
                 transaction.set(lock_ref, lock_data)
@@ -83,7 +83,8 @@ class AsyncFirestoreService(BaseService):
                 # Lock was deleted between transaction and retrieval
                 # Return a placeholder lock indicating it's held by unknown owner
                 return False, Lock(
-                    expires_at=datetime.now(UTC) + timedelta(seconds=expiration_seconds),
+                    expires_at=datetime.now(UTC)
+                    + timedelta(seconds=expiration_seconds),
                     expiration_seconds=expiration_seconds,
                     locked=True,
                     owner="unknown",
@@ -110,7 +111,7 @@ class AsyncFirestoreService(BaseService):
         lock_ref = self.firestore_client.collection("locks").document(lock_id)
 
         @firestore.async_transactional
-        async def update_in_transaction(transaction, lock_ref):
+        async def update_in_transaction(transaction):
             snapshot = await lock_ref.get(transaction=transaction)
             if snapshot.exists and snapshot.get("expires_at") + timedelta(
                 seconds=snapshot.get("expiration_seconds")
@@ -126,7 +127,7 @@ class AsyncFirestoreService(BaseService):
                 },
             )
 
-        await update_in_transaction(transaction, lock_ref)
+        await update_in_transaction(transaction)
         return True
 
     async def release_lock(self, lock_id: str) -> None:
@@ -135,12 +136,12 @@ class AsyncFirestoreService(BaseService):
         lock_ref = self.firestore_client.collection("locks").document(lock_id)
 
         @firestore.async_transactional
-        async def delete_in_transaction(transaction, lock_ref):
+        async def delete_in_transaction(transaction: AsyncTransaction):
             transaction.delete(
                 lock_ref,
             )
 
-        await delete_in_transaction(transaction, lock_ref)
+        await delete_in_transaction(transaction)
 
     @staticmethod
     async def get_integration_histories(
@@ -149,13 +150,13 @@ class AsyncFirestoreService(BaseService):
         order_by: Optional[List[Tuple[str, OrderDirection]]] = None,
         limit: Optional[int] = None,
         offset: Optional[int] = None,
-        transaction: Optional[Transaction] = None,
+        transaction: Optional[AsyncTransaction] = None,
     ) -> List[IntegrationHistory]:
         integration = MondayIntegration.get_by_id(integration_id)
         history_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
             integration
         )
-        return history_model.find(
+        return await history_model.find(
             filter_=filter_,
             order_by=order_by,
             limit=limit,
@@ -176,7 +177,7 @@ class AsyncFirestoreService(BaseService):
         new_integration = integration_model(
             **integration.model_dump(exclude_unset=True)
         )
-        new_integration.save(exclude_unset=True)
+        await new_integration.save(exclude_unset=True)
         return new_integration
 
     @staticmethod
@@ -189,7 +190,7 @@ class AsyncFirestoreService(BaseService):
         )
 
         try:
-            history = history_model.get_by_id(history_id)
+            history = await history_model.get_by_id(history_id)
         except ModelNotFoundError:
             history = history_model.model_construct()
             history.id = history_id
