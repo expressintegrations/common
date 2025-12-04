@@ -158,7 +158,7 @@ class FirestoreService(BaseService):
         return connection_model.find()
 
     @staticmethod
-    def get_integration_histories(
+    async def get_integration_histories(
         integration_id: str,
         filter_: Optional[Dict[str, Union[str, dict]]] = None,
         order_by: Optional[List[Tuple[str, OrderDirection]]] = None,
@@ -170,7 +170,7 @@ class FirestoreService(BaseService):
         history_model: Type[IntegrationHistory] = IntegrationHistory.model_for(
             integration
         )
-        return history_model.find(
+        return await history_model.find(
             filter_=filter_,
             order_by=order_by,
             limit=limit,
@@ -179,7 +179,7 @@ class FirestoreService(BaseService):
         )
 
     @staticmethod
-    def create_integration_history(
+    async def create_integration_history(
         integration_id: str, integration: IntegrationHistory
     ) -> IntegrationHistory:
         IntegrationHistory.__collection__ = (
@@ -191,11 +191,11 @@ class FirestoreService(BaseService):
         new_integration = integration_model(
             **integration.model_dump(exclude_unset=True)
         )
-        new_integration.save(exclude_unset=True)
+        await new_integration.save(exclude_unset=True)
         return new_integration
 
     @staticmethod
-    def get_integration_history_by_id(
+    async def get_integration_history_by_id(
         integration_id: str, history_id: str
     ) -> IntegrationHistory:
         integration = MondayIntegration.get_by_id(integration_id)
@@ -204,7 +204,7 @@ class FirestoreService(BaseService):
         )
 
         try:
-            history = history_model.get_by_id(history_id)
+            history = await history_model.get_by_id(history_id)
         except ModelNotFoundError:
             history = history_model.model_construct()
             history.id = history_id
