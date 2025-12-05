@@ -1,20 +1,21 @@
 import os
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
-from google.cloud import firestore
-from typing import Dict, List, Optional, Type, Union, Tuple
-from firedantic.common import OrderDirection
 from firedantic import ModelNotFoundError
-
-from common.services.base import BaseService
-from common.models.monday.monday_integrations import (
-    MondayIntegration,
-    IntegrationHistory,
-)
-from common.models.firestore.connections import Connection
-from common.models.firestore.installations import Installation
+from firedantic.common import OrderDirection
+from google.cloud import firestore
+from google.cloud.firestore import DocumentSnapshot
 from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 from pydantic import BaseModel
+
+from common.models.firestore.connections import Connection
+from common.models.firestore.installations import Installation
+from common.models.monday.monday_integrations import (
+    IntegrationHistory,
+    MondayIntegration,
+)
+from common.services.base import BaseService
 
 
 class Lock(BaseModel):
@@ -199,66 +200,153 @@ class AsyncFirestoreService(BaseService):
         return history
 
     @staticmethod
-    def get_connection_by_app_account_identifier_and_user_id(
+    async def get_connection_by_app_account_identifier_and_user_id(
         integration_name: str,
         account_identifier: int | str,
         app_name: str,
         user_id: str,
     ) -> Connection:
-        installation = Installation.find_one(
+        installation = await Installation.find_one(
             filter_={  # type: ignore
                 "account_identifier": str(account_identifier),
                 "integration_name": integration_name,
                 "active": True,
             }
         )
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one(
-            {"app_name": app_name, "authorized_by_id": user_id}
+        return await Connection.find_one(
+            parent=installation,
+            filter_={
+                "app_name": app_name,
+                "authorized_by_id": user_id,
+            },
         )
 
     @staticmethod
-    def get_connection_by_app_account_identifier(
+    async def get_connection_by_app_account_identifier(
         integration_name: str, account_identifier: int | str, app_name: str
     ) -> Connection:
-        installation = Installation.find_one(
+        installation = await Installation.find_one(
             filter_={  # type: ignore
                 "account_identifier": str(account_identifier),
                 "integration_name": integration_name,
                 "active": True,
             }
         )
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({"app_name": app_name})
+        return await Connection.find_one(
+            parent=installation,
+            filter_={"app_name": app_name},
+        )
 
     @staticmethod
-    def get_connections_for_installation(installation_id: str) -> List[Connection]:
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find()
+    async def get_connections_for_installation(
+        installation_id: str,
+    ) -> List[Connection]:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find(parent=installation)
 
     @staticmethod
-    def create_connection(installation_id: str, connection: Connection) -> Connection:
-        Connection.__collection__ = f"installations/{installation_id}/connections"
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        new_connection = connection_model(**connection.model_dump(exclude_unset=True))
-        new_connection.save(exclude_unset=True)
-        return new_connection
+    async def get_connection_by_app_name(
+        installation_id: str, app_name: str
+    ) -> Connection:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find_one(
+            parent=installation,
+            filter_={"app_name": app_name},
+        )
 
     @staticmethod
-    def get_connection_by_app_name(installation_id: str, app_name: str) -> Connection:
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({"app_name": app_name})
-
-    @staticmethod
-    def get_connection_by_authorized_user(
+    async def get_connection_by_authorized_user(
         installation: Installation,
         app_name: str,
         authorized_by_id: str,
     ) -> Connection:
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one(
-            {"app_name": app_name, "authorized_by_id": authorized_by_id}
+        return await Connection.find_one(
+            parent=installation,
+            filter_={
+                "app_name": app_name,
+                "authorized_by_id": authorized_by_id,
+            },
         )
+
+    @staticmethod
+    async def get_active_connection_by_app_name(
+        installation_id: str, app_name: str
+    ) -> Connection:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find_one(
+            parent=installation,
+            filter_={  # type: ignore
+                "app_name": app_name,
+                "connected": True,
+            },
+        )
+
+    async def get_account_doc(
+        self, app_name: str, account_id: int | str
+    ) -> DocumentSnapshot:
+        app_doc_ref = self.firestore_client.collection("apps").document(app_name)
+        app_doc = await app_doc_ref.get()
+        if not app_doc.exists:
+            await app_doc_ref.set({"created": datetime.now(tz=timezone.utc)})
+
+        account_doc_ref = app_doc_ref.collection("accounts").document(str(account_id))
+        account_doc = await account_doc_ref.get()
+        if not account_doc.exists:
+            await account_doc_ref.set({"created": datetime.now(tz=timezone.utc)})
+        return account_doc
+
+    async def get_app_account_field(
+        self, app_name: str, account_id: Any, field_name: str
+    ):
+        doc = await self.get_account_doc(app_name=app_name, account_id=str(account_id))
+        doc_data = dict() if not doc.exists else doc.to_dict()
+        if not doc_data:
+            return None
+        return doc_data.get(field_name)
+
+    async def set_app_account_field(
+        self, app_name: str, account_id: Any, field_name: str, value: Any = None
+    ):
+        doc = await self.get_account_doc(app_name=app_name, account_id=account_id)
+        doc_data = dict() if not doc.exists else doc.to_dict()
+        if not doc_data:
+            doc_data = {}
+        doc_data[field_name] = value
+        return await doc.reference.set(document_data=doc_data)
+
+    async def enroll_object_for_bulk_processing(
+        self,
+        app_name: str,
+        function_name: str,
+        enrollment_key: str,
+        portal_id: Any,
+        data: dict,
+        callback_id: str | None = None,
+        expiration_hours: int = 0,
+    ):
+        account_doc = await self.get_account_doc(
+            app_name=app_name, account_id=portal_id
+        )
+        enrollment_doc = account_doc.reference.collection(
+            f"{function_name}_enrollments"
+        ).document(enrollment_key)
+        doc = await enrollment_doc.get()
+        doc_obj = doc.to_dict()
+        current_callbacks = doc_obj["callback_ids"] if doc.exists else []
+        data = {
+            "timestamp": datetime.now(tz=timezone.utc),
+            "callback_ids": list(set(current_callbacks + [callback_id]))
+            if callback_id
+            else None,
+            "request": data,
+            "action_taken": doc_obj["action_taken"] if doc.exists else False,
+            "usage_reported": doc_obj["usage_reported"] if doc.exists else False,
+            "completed": doc_obj["completed"] if doc.exists else False,
+            "expires": doc_obj["expires"]
+            if doc.exists
+            else datetime.now(tz=timezone.utc) + timedelta(hours=expiration_hours),
+            "task_id": "",
+            "uuid": "",
+        }
+        enrollment_doc.set(document_data=data)
+        return data

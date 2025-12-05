@@ -102,7 +102,7 @@ class CreateAppointmentRequest(BaseModel):
     send_client_email_notification: Optional[bool] = None
     reminder_type: Optional[ReminderType] = None
 
-    @field_serializer('utc_date_time')
+    @field_serializer("utc_date_time")
     def serialize_dt(self, dt: datetime, _info):
         return dt.timestamp() * 1000
 
@@ -120,7 +120,7 @@ class UpdateAppointmentRequest(BaseModel):
     send_client_email_notification: Optional[bool] = None
     reminder_type: Optional[ReminderType] = None
 
-    @field_serializer('utc_date_time')
+    @field_serializer("utc_date_time")
     def serialize_dt(self, dt: datetime, _info):
         return dt.timestamp() * 1000
 
