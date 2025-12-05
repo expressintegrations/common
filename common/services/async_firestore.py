@@ -350,3 +350,108 @@ class AsyncFirestoreService(BaseService):
         }
         enrollment_doc.set(document_data=data)
         return data
+
+    async def object_currently_enrolled(
+        self,
+        portal_id: int,
+        workflow_id: int,
+        action_id: int,
+        object_type: str,
+        object_id: int,
+        callback_id: str,
+        expiration_hours: int = 0,
+    ):
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc = self.firestore_client.collection("enrollments").document(
+            enrollment_key
+        )
+        now = datetime.now(tz=timezone.utc)
+        doc = await enrollment_doc.get()
+        doc_obj = doc.to_dict() or {}
+        if not doc.exists or doc_obj["expires"] < now:
+            await enrollment_doc.set(
+                {
+                    "expires": now + timedelta(hours=expiration_hours),
+                    "callback_ids": [callback_id],
+                    "completed": False,
+                }
+            )
+            return False
+        await enrollment_doc.set(
+            {
+                "expires": doc_obj["expires"],
+                "callback_ids": list(set(doc_obj["callback_ids"] + [callback_id])),
+                "completed": doc_obj["completed"],
+            }
+        )
+
+        if not doc_obj["completed"]:
+            return True
+        return False
+
+    async def get_enrollments(
+        self,
+        portal_id: int,
+        workflow_id: int,
+        action_id: int,
+        object_type: str,
+        object_id: int,
+        callback_id: str,
+    ):
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc_ref = self.firestore_client.collection("enrollments").document(
+            enrollment_key
+        )
+        enrollment_doc = await enrollment_doc_ref.get()
+        if not enrollment_doc.exists:
+            return [callback_id]
+        doc_obj = enrollment_doc.to_dict() or {}
+        callback_ids = list(set(doc_obj["callback_ids"] + [callback_id]))
+        return callback_ids
+
+    async def complete_enrollment(
+        self,
+        portal_id: int,
+        workflow_id: int,
+        action_id: int,
+        object_type: str,
+        object_id: int,
+    ):
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc_ref = self.firestore_client.collection("enrollments").document(
+            enrollment_key
+        )
+        doc = await enrollment_doc_ref.get()
+        doc_obj = doc.to_dict() or {}
+        await enrollment_doc_ref.set(
+            {
+                "expires": doc_obj["expires"],
+                "callback_ids": doc_obj["callback_ids"],
+                "completed": True,
+            }
+        )
+
+    async def clear_enrollments(
+        self,
+        portal_id: int,
+        workflow_id: int,
+        action_id: int,
+        object_type: str,
+        object_id: int,
+    ):
+        enrollment_key = (
+            f"{portal_id}-{workflow_id}-{action_id}-{object_type}-{object_id}"
+        )
+        enrollment_doc_ref = self.firestore_client.collection("enrollments").document(
+            enrollment_key
+        )
+        doc = await enrollment_doc_ref.get()
+        data = doc.to_dict() or {}
+        data["callback_ids"] = []
+        await enrollment_doc_ref.set(data)
