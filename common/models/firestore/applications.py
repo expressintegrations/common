@@ -34,3 +34,4 @@ class Application(AsyncModel):
     required_inputs: Optional[List[FieldInput]] = []
     integration_id: Optional[str] = None
     requires_user_auth: Optional[bool] = None
+    ip_ranges: List[str] = []

@@ -8,6 +8,7 @@ from firedantic.exceptions import (
     InvalidDocumentID,
     ModelNotFoundError,
 )
+from google.cloud.firestore import AsyncDocumentReference
 
 TMultiLevelAsyncSubModel = TypeVar(
     "TMultiLevelAsyncSubModel", bound="MultiLevelAsyncSubModel"
@@ -125,6 +126,7 @@ class MultiLevelAsyncSubModel(AsyncSubModel):
         parent: AsyncModel | None = None,
         exclude_unset: bool = False,
         exclude_none: bool = False,
+        merge: bool = True,
         **kwargs,
     ) -> None:
         """Save this model to Firestore.
@@ -161,7 +163,9 @@ class MultiLevelAsyncSubModel(AsyncSubModel):
 
         # Get document reference
         if doc_id:
-            doc_ref = CONFIGURATIONS["db"].collection(collection_path).document(doc_id)
+            doc_ref: AsyncDocumentReference = (
+                CONFIGURATIONS["db"].collection(collection_path).document(doc_id)
+            )
         else:
             doc_ref = CONFIGURATIONS["db"].collection(collection_path).document()
 
@@ -180,7 +184,7 @@ class MultiLevelAsyncSubModel(AsyncSubModel):
             await doc_ref.update(data)
         else:
             # Create new document
-            await doc_ref.set(data)
+            await doc_ref.set(data, merge=merge)
 
         # Update this instance with new ID
         setattr(self, self.Collection.__document_id__, doc_ref.id)

@@ -266,3 +266,16 @@ class AsyncFirestoreService(BaseService):
                 "authorized_by_id": authorized_by_id,
             },
         )
+
+    @staticmethod
+    async def get_active_connection_by_app_name(
+        installation_id: str, app_name: str
+    ) -> Connection:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find_one(
+            parent=installation,
+            filter_={  # type: ignore
+                "app_name": app_name,
+                "connected": True,
+            },
+        )
