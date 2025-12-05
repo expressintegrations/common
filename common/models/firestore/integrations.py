@@ -1,12 +1,12 @@
-from typing import Optional, List
+from typing import List, Optional
 
-from firedantic import Model
+from firedantic import AsyncModel
 
 from common.models.firestore.applications import FieldInput
 
 
-class Integration(Model):
-    __collection__ = 'integrations'
+class Integration(AsyncModel):
+    __collection__ = "integrations"
     label: Optional[str] = None
     name: Optional[str] = None
     required_application_ids: Optional[List[str]] = []

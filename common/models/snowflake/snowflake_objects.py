@@ -1,12 +1,14 @@
 from datetime import datetime, timedelta, timezone
-from typing import Optional, Any
+from typing import Any, Optional
 
-from firedantic import Model
+from firedantic import AsyncModel
 
 
-class SnowflakeObject(Model):
+class SnowflakeObject(AsyncModel):
     __collection__ = "apps/snowflake/snowflake_objects"
     __ttl_field__ = "timestamp"
 
-    timestamp: Optional[datetime] = datetime.now(tz=timezone.utc) + timedelta(minutes=10)
+    timestamp: Optional[datetime] = datetime.now(tz=timezone.utc) + timedelta(
+        minutes=10
+    )
     content: Optional[Any] = None

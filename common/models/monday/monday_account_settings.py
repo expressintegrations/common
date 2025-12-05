@@ -1,10 +1,11 @@
-from typing import Optional
 from enum import StrEnum
+from typing import Optional
 
-from firedantic import Model
+from firedantic import AsyncModel
 from pydantic import BaseModel
-from common.models.monday.monday_integrations import MondayIntegration
+
 from common.models.firestore.accounts import Account
+from common.models.monday.monday_integrations import MondayIntegration
 
 
 class MondayAccountConnection(BaseModel):
@@ -32,7 +33,7 @@ class AlertType(StrEnum):
     INFO = "info"
 
 
-class IntegrationAlert(Model):
+class IntegrationAlert(AsyncModel):
     __collection__ = "monday_integration_alerts"
     account_id: int
     type: AlertType

@@ -1,10 +1,10 @@
 from __future__ import annotations
 
+from enum import Enum
 from typing import List, Optional
 
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
-from enum import Enum
 
 
 class SubscriptionType(str, Enum):

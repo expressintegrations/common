@@ -2,8 +2,12 @@ from datetime import datetime, timezone
 from enum import Enum
 from typing import Optional
 
-from firedantic import SubModel, SubCollection
 from pydantic import BaseModel
+
+from common.models.firestore.multi_model import (
+    MultiLevelAsyncSubCollection,
+    MultiLevelAsyncSubModel,
+)
 
 
 class AuthMethod(str, Enum):
@@ -48,7 +52,7 @@ class Authorization(BaseModel):
     private_token: Optional[bool] = None
 
 
-class Connection(SubModel):
+class Connection(MultiLevelAsyncSubModel):
     account_identifier: Optional[str] = None
     account_id: Optional[str] = None
     authorized_by_id: Optional[str] = None
@@ -60,26 +64,5 @@ class Connection(SubModel):
     created_at: Optional[datetime] = datetime.now(tz=timezone.utc)
     ever_connected: Optional[bool] = False
 
-    class Collection(SubCollection):
-        __collection_tpl__ = "installations/{id}/connections"
-
-    def save(
-        self,
-        by_alias: bool = True,
-        exclude_unset: bool = False,
-        exclude_none: bool = False,
-    ) -> None:
-        """
-        Saves this model in the database.
-
-        :raise DocumentIDError: If the document ID is not valid.
-        """
-        data = self.model_dump(
-            by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none
-        )
-        if self.__document_id__ in data:
-            del data[self.__document_id__]
-
-        doc_ref = self._get_doc_ref()
-        doc_ref.set(data)
-        setattr(self, self.__document_id__, doc_ref.id)
+    class Collection(MultiLevelAsyncSubCollection):
+        __collection_tpl__ = "installations/{installation_id}/connections"

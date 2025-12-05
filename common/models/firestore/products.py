@@ -1,12 +1,12 @@
-from typing import Optional, List
+from typing import List, Optional
 
-from firedantic import Model
+from firedantic import AsyncModel
 
 from common.models.firestore.prices import Price
 
 
-class Product(Model):
-    __collection__ = 'products'
+class Product(AsyncModel):
+    __collection__ = "products"
     name: Optional[str] = None
     category: Optional[str] = None
     integration_name: Optional[str] = None
@@ -18,17 +18,3 @@ class Product(Model):
     feature_group_ids: Optional[List[str]] = None
     prices: Optional[List[Price]] = None
     monday_plan_id: Optional[str] = None
-
-    def save(self, by_alias: bool = True, exclude_unset: bool = True, exclude_none: bool = False) -> None:
-        """
-        Saves this model in the database.
-
-        :raise DocumentIDError: If the document ID is not valid.
-        """
-        data = self.model_dump(by_alias=by_alias, exclude_unset=exclude_unset, exclude_none=exclude_none)
-        if self.__document_id__ in data:
-            del data[self.__document_id__]
-
-        doc_ref = self._get_doc_ref()
-        doc_ref.set(data)
-        setattr(self, self.__document_id__, doc_ref.id)
