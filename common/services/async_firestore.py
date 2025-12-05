@@ -1,20 +1,20 @@
 import os
-from datetime import datetime, timedelta, timezone, UTC
+from datetime import UTC, datetime, timedelta, timezone
+from typing import Dict, List, Optional, Tuple, Type, Union
 
-from google.cloud import firestore
-from typing import Dict, List, Optional, Type, Union, Tuple
-from firedantic.common import OrderDirection
 from firedantic import ModelNotFoundError
-
-from common.services.base import BaseService
-from common.models.monday.monday_integrations import (
-    MondayIntegration,
-    IntegrationHistory,
-)
-from common.models.firestore.connections import Connection
-from common.models.firestore.installations import Installation
+from firedantic.common import OrderDirection
+from google.cloud import firestore
 from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 from pydantic import BaseModel
+
+from common.models.firestore.connections import Connection
+from common.models.firestore.installations import Installation
+from common.models.monday.monday_integrations import (
+    IntegrationHistory,
+    MondayIntegration,
+)
+from common.services.base import BaseService
 
 
 class Lock(BaseModel):
@@ -199,66 +199,70 @@ class AsyncFirestoreService(BaseService):
         return history
 
     @staticmethod
-    def get_connection_by_app_account_identifier_and_user_id(
+    async def get_connection_by_app_account_identifier_and_user_id(
         integration_name: str,
         account_identifier: int | str,
         app_name: str,
         user_id: str,
     ) -> Connection:
-        installation = Installation.find_one(
+        installation = await Installation.find_one(
             filter_={  # type: ignore
                 "account_identifier": str(account_identifier),
                 "integration_name": integration_name,
                 "active": True,
             }
         )
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one(
-            {"app_name": app_name, "authorized_by_id": user_id}
+        return await Connection.find_one(
+            parent=installation,
+            filter_={
+                "app_name": app_name,
+                "authorized_by_id": user_id,
+            },
         )
 
     @staticmethod
-    def get_connection_by_app_account_identifier(
+    async def get_connection_by_app_account_identifier(
         integration_name: str, account_identifier: int | str, app_name: str
     ) -> Connection:
-        installation = Installation.find_one(
+        installation = await Installation.find_one(
             filter_={  # type: ignore
                 "account_identifier": str(account_identifier),
                 "integration_name": integration_name,
                 "active": True,
             }
         )
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({"app_name": app_name})
+        return await Connection.find_one(
+            parent=installation,
+            filter_={"app_name": app_name},
+        )
 
     @staticmethod
-    def get_connections_for_installation(installation_id: str) -> List[Connection]:
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find()
+    async def get_connections_for_installation(
+        installation_id: str,
+    ) -> List[Connection]:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find(parent=installation)
 
     @staticmethod
-    def create_connection(installation_id: str, connection: Connection) -> Connection:
-        Connection.__collection__ = f"installations/{installation_id}/connections"
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        new_connection = connection_model(**connection.model_dump(exclude_unset=True))
-        new_connection.save(exclude_unset=True)
-        return new_connection
+    async def get_connection_by_app_name(
+        installation_id: str, app_name: str
+    ) -> Connection:
+        installation = await Installation.get_by_id(installation_id)
+        return await Connection.find_one(
+            parent=installation,
+            filter_={"app_name": app_name},
+        )
 
     @staticmethod
-    def get_connection_by_app_name(installation_id: str, app_name: str) -> Connection:
-        installation = Installation.get_by_id(installation_id)
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one({"app_name": app_name})
-
-    @staticmethod
-    def get_connection_by_authorized_user(
+    async def get_connection_by_authorized_user(
         installation: Installation,
         app_name: str,
         authorized_by_id: str,
     ) -> Connection:
-        connection_model: Type[Connection] = Connection.model_for(installation)
-        return connection_model.find_one(
-            {"app_name": app_name, "authorized_by_id": authorized_by_id}
+        return await Connection.find_one(
+            parent=installation,
+            filter_={
+                "app_name": app_name,
+                "authorized_by_id": authorized_by_id,
+            },
         )
