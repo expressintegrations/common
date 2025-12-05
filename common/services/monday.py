@@ -1,47 +1,50 @@
 import ast
-import json
-import re
-import httpx
-import aiohttp
 import asyncio
-from httpx_retries import RetryTransport, Retry
-from datetime import datetime, timezone, timedelta, date
-from typing import List, Tuple, Dict, Any
+import json
+import math
+import re
+import statistics
+from datetime import date, datetime, timedelta, timezone
+from typing import Any, Dict, List, Tuple
 
+import aiohttp
+import httpx
+from httpx_retries import Retry, RetryTransport
 from monday import MondayClient
 from monday.utils import gather_params
+from monday_async import AsyncMondayClient
+from monday_async.types.args import QueryParams
+from monday_async.types.enum_values import (
+    ID,
+    BoardKind,
+    BoardsOrderBy,
+    ColumnType,
+    State,
+)
+from monday_async.utils.queries.query_addons import (
+    add_column_values,
+    add_complexity,
+)
+from monday_async.utils.utils import (
+    format_param_value,
+    graphql_parse,
+)
+from simpleeval import DEFAULT_OPERATORS, simple_eval
 
 from common.core.utils import is_json
 from common.logging.client import Logger
 from common.models.monday.api.account import Account
-from common.models.monday.api.boards import SimpleBoard, BoardColumn
+from common.models.monday.api.boards import BoardColumn, SimpleBoard
 from common.models.monday.api.items import ColumnDetails, ColumnValue, Item
 from common.models.monday.api.me import Me
+from common.models.monday.api.queries import Complexity
 from common.models.monday.api.webhooks import WebhookResponse
 from common.models.monday.api.workspace import Workspace
 from common.models.monday.app_events import Subscription
 from common.services.base import BaseService
 from common.services.constants import (
-    UNSUPPORTED_MONDAY_COLUMN_TYPES,
     ALLOWABLE_SNOWFLAKE_PRIMARY_KEY_COLUMNS,
-)
-from monday_async import AsyncMondayClient
-from monday_async.types.enum_values import State, BoardKind, BoardsOrderBy, ID
-from monday_async.types.args import QueryParams
-from monday_async.types.enum_values import ColumnType
-import statistics
-from simpleeval import simple_eval, DEFAULT_OPERATORS
-import math
-from common.models.monday.api.queries import Complexity
-
-from monday_async.utils.queries.query_addons import (
-    add_complexity,
-    add_column_values,
-)
-
-from monday_async.utils.utils import (
-    format_param_value,
-    graphql_parse,
+    UNSUPPORTED_MONDAY_COLUMN_TYPES,
 )
 
 
@@ -1168,6 +1171,17 @@ class MondayService(BaseService):
                         with_complexity=True,
                     )
                 )
+                if not response["data"]["boards"]:
+                    self.logger.log_error(
+                        f"Board {board_id} not found",
+                        labels={
+                            "board_id": board_id,
+                            "column_id": column_id,
+                            "column_value": column_value,
+                            "response": json.dumps(response),
+                        },
+                    )
+                    raise Exception(f"Board {board_id} not found")
                 items_page = response["data"]["boards"][0]["items_page"]
                 for raw_item in items_page["items"]:
                     item = Item(
