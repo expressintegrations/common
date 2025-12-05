@@ -1,10 +1,11 @@
 import os
 from datetime import UTC, datetime, timedelta, timezone
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Any, Dict, List, Optional, Tuple, Type, Union
 
 from firedantic import ModelNotFoundError
 from firedantic.common import OrderDirection
 from google.cloud import firestore
+from google.cloud.firestore import DocumentSnapshot
 from google.cloud.firestore_v1.async_transaction import AsyncTransaction
 from pydantic import BaseModel
 
@@ -279,3 +280,73 @@ class AsyncFirestoreService(BaseService):
                 "connected": True,
             },
         )
+
+    async def get_account_doc(
+        self, app_name: str, account_id: int | str
+    ) -> DocumentSnapshot:
+        app_doc_ref = self.firestore_client.collection("apps").document(app_name)
+        app_doc = await app_doc_ref.get()
+        if not app_doc.exists:
+            await app_doc_ref.set({"created": datetime.now(tz=timezone.utc)})
+
+        account_doc_ref = app_doc_ref.collection("accounts").document(str(account_id))
+        account_doc = await account_doc_ref.get()
+        if not account_doc.exists:
+            await account_doc_ref.set({"created": datetime.now(tz=timezone.utc)})
+        return account_doc
+
+    async def get_app_account_field(
+        self, app_name: str, account_id: Any, field_name: str
+    ):
+        doc = await self.get_account_doc(app_name=app_name, account_id=str(account_id))
+        doc_data = dict() if not doc.exists else doc.to_dict()
+        if not doc_data:
+            return None
+        return doc_data.get(field_name)
+
+    async def set_app_account_field(
+        self, app_name: str, account_id: Any, field_name: str, value: Any = None
+    ):
+        doc = await self.get_account_doc(app_name=app_name, account_id=account_id)
+        doc_data = dict() if not doc.exists else doc.to_dict()
+        if not doc_data:
+            doc_data = {}
+        doc_data[field_name] = value
+        return await doc.reference.set(document_data=doc_data)
+
+    async def enroll_object_for_bulk_processing(
+        self,
+        app_name: str,
+        function_name: str,
+        enrollment_key: str,
+        portal_id: Any,
+        data: dict,
+        callback_id: str | None = None,
+        expiration_hours: int = 0,
+    ):
+        account_doc = await self.get_account_doc(
+            app_name=app_name, account_id=portal_id
+        )
+        enrollment_doc = account_doc.reference.collection(
+            f"{function_name}_enrollments"
+        ).document(enrollment_key)
+        doc = await enrollment_doc.get()
+        doc_obj = doc.to_dict()
+        current_callbacks = doc_obj["callback_ids"] if doc.exists else []
+        data = {
+            "timestamp": datetime.now(tz=timezone.utc),
+            "callback_ids": list(set(current_callbacks + [callback_id]))
+            if callback_id
+            else None,
+            "request": data,
+            "action_taken": doc_obj["action_taken"] if doc.exists else False,
+            "usage_reported": doc_obj["usage_reported"] if doc.exists else False,
+            "completed": doc_obj["completed"] if doc.exists else False,
+            "expires": doc_obj["expires"]
+            if doc.exists
+            else datetime.now(tz=timezone.utc) + timedelta(hours=expiration_hours),
+            "task_id": "",
+            "uuid": "",
+        }
+        enrollment_doc.set(document_data=data)
+        return data
